@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -63,7 +63,7 @@ fi
 
 apt-get -y --force-yes --no-install-recommends install $PACKAGE_NAME
 
-service docker stop
+service docker stop || true
 
 if ! getent group docker &>/dev/null; then
     groupadd --system docker
@@ -148,13 +148,16 @@ if [[ -f /etc/default/ufw ]]; then
         /etc/default/ufw
 fi
 
-# This would normally be on a separate volume,
-# and most likely formatted to use "btrfs".
+grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
+    sort -gr | cut -d' ' -f2- | xargs umount -l -f 2> /dev/null || true
+
 for d in /srv/docker /var/lib/docker; do
-    [[ -d $d ]] || mkdir -p $d
-    rm -rf ${d}/*
-    chown root:root $d
-    chmod 755 $d
+  [[ -d $d ]] || mkdir -p $d
+
+  rm -rf ${d}/*
+
+  chown root:root $d
+  chmod 755 $d
 done
 
 # A bind-mount for the Docker root directory.

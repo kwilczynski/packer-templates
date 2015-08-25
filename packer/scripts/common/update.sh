@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -9,12 +9,6 @@ export DEBCONF_NONINTERACTIVE_SEEN=true
 
 readonly UBUNTU_RELEASE=$(lsb_release -sc)
 readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
-
-# This is only applicable when building Amazon EC2 image (AMI).
-AMAZON_EC2='no'
-if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/null; then
-    AMAZON_EC2='yes'
-fi
 
 cat <<'EOF' | tee /etc/apt/apt.conf.d/00trustcdrom
 APT
@@ -170,10 +164,6 @@ chown root:root /etc/resolvconf/resolv.conf.d/head
 chmod 644 /etc/resolvconf/resolv.conf.d/head
 
 NAME_SERVERS=( 8.8.8.8 8.8.4.4 )
-if [[ $AMAZON_EC2 == 'yes' ]]; then
-    NAME_SERVERS=()
-fi
-
 cat <<EOF | sed -e '/^$/d' | tee /etc/resolvconf/resolv.conf.d/tail
 $(for s in ${NAME_SERVERS[@]}; do
     echo "nameserver $s"

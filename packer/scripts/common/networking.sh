@@ -1,16 +1,11 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
-
-AMAZON_EC2='no'
-if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/null; then
-    AMAZON_EC2='yes'
-fi
 
 if ufw status &>/dev/null; then
     ufw disable

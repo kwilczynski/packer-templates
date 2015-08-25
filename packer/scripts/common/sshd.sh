@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 rm -f /etc/ssh/ssh_host_*
 ssh-keygen -A
