@@ -1,0 +1,40 @@
+Vagrant.configure('2') do |config|
+  config.ssh.forward_agent = true
+  config.vm.box_check_update = true
+
+  config.vm.provider :virtualbox do |vm, override|
+    vm.customize [ 'modifyvm', :id,
+      '--chipset', 'ich9',
+      '--rtcuseutc', 'on',
+      '--natdnsproxy1', 'on',
+      '--natdnshostresolver1', 'on',
+      '--nictype1', 'virtio'
+    ]
+  end
+
+  %w(vmware_fusion vmware_workstation).each do |provider|
+    config.vm.provider provider do |vm, override|
+      vm.vmx['logging'] = 'FALSE'
+      vm.vmx['rtc.diffFromUTC'] = 0
+      vm.vmx['snapshot.disabled'] = 'TRUE'
+      vm.vmx['MemTrimRate'] = '0'
+      vm.vmx['MemAllowAutoScaleDown'] = 'FALSE'
+      vm.vmx['mainMem.backing'] = 'swap'
+      vm.vmx['mainMem.useNamedFile'] = 'FALSE'
+      vm.vmx['prefvmx.useRecommendedLockedMemSize'] = 'TRUE'
+      vm.vmx['prefvmx.minVmMemPct'] = '100'
+      vm.vmx['sched.mem.pshare.enable'] = 'FALSE'
+      vm.vmx['isolation.tools.unity.disable'] = 'TRUE'
+      vm.vmx['ethernet0.present'] = 'TRUE'
+      vm.vmx['ethernet0.virtualDev'] = 'vmxnet3'
+      vm.vmx['ethernet0.addressType'] = 'generated'
+      vm.vmx['ethernet0.wakeOnPcktRcv'] = 'FALSE'
+      vm.vmx['floppy0.present'] = 'FALSE'
+      vm.vmx['scsi0.present'] = 'TRUE'
+      vm.vmx['scsi0.virtualDev'] = 'lsilogic'
+      vm.vmx['usb.present'] = 'TRUE'
+      vm.vmx['usb.generic.autoconnect'] = 'FALSE'
+      vm.vmx['sound.present'] = 'FALSE'
+    end
+  end
+end

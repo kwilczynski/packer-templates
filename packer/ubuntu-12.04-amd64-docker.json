@@ -1,0 +1,203 @@
+{
+  "variables": {
+    "name": "ubuntu-12.04-amd64-docker",
+    "description": "Ubuntu 12.04 x86_64 (amd64) with Docker",
+    "version": "0.1.0",
+    "mirror": "http://jp.releases.ubuntu.com",
+    "build_number": "{{env `BUILD_NUMBER`}}",
+    "docker_version": "{{env `DOCKER_VERSION`}}",
+    "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
+    "headless": true
+  },
+  "description": "{{user `description`}}",
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "name": "vagrant-virtualbox",
+      "headless": "{{user `headless`}}",
+      "vm_name": "packer_{{user `name`}}",
+      "boot_command": [
+        "<esc><wait>",
+        "<esc><wait>",
+        "<enter><wait>",
+        "/install/vmlinuz<wait>",
+        " auto<wait>",
+        " console-setup/ask_detect=false<wait>",
+        " console-setup/layoutcode=us<wait>",
+        " console-setup/modelcode=pc105<wait>",
+        " debconf/frontend=noninteractive<wait>",
+        " debian-installer=en_US<wait>",
+        " fb=false<wait>",
+        " initrd=/install/initrd.gz<wait>",
+        " kbd-chooser/method=us<wait>",
+        " keyboard-configuration/layout=USA<wait>",
+        " keyboard-configuration/variant=USA<wait>",
+        " locale=en_US<wait>",
+        " netcfg/get_domain=localdomain<wait>",
+        " netcfg/get_hostname=localhost<wait>",
+        " noapic<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
+        " -- <wait>",
+        "<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 40960,
+      "guest_additions_path": "VBoxGuestAdditions_{{ .Version }}.iso",
+      "guest_os_type": "Ubuntu_64",
+      "http_directory": "http",
+      "iso_checksum": "af224223de99e2a730b67d7785b657f549be0d63221188e105445f75fb8305c9",
+      "iso_checksum_type": "sha256",
+      "iso_urls": [
+        "{{user `mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
+      ],
+      "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
+      "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+      "virtualbox_version_file": ".virtualbox_version",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--memory",
+          "384"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--cpus",
+          "1"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--rtcuseutc",
+          "on"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--natdnshostresolver1",
+          "on"
+        ]
+      ]
+    },
+    {
+      "type": "vmware-iso",
+      "name": "vagrant-vmware",
+      "headless": "{{user `headless`}}",
+      "vm_name": "packer_{{user `name`}}",
+      "boot_command": [
+        "<esc><wait>",
+        "<esc><wait>",
+        "<enter><wait>",
+        "/install/vmlinuz<wait>",
+        " auto<wait>",
+        " console-setup/ask_detect=false<wait>",
+        " console-setup/layoutcode=us<wait>",
+        " console-setup/modelcode=pc105<wait>",
+        " debconf/frontend=noninteractive<wait>",
+        " debian-installer=en_US<wait>",
+        " fb=false<wait>",
+        " initrd=/install/initrd.gz<wait>",
+        " kbd-chooser/method=us<wait>",
+        " keyboard-configuration/layout=USA<wait>",
+        " keyboard-configuration/variant=USA<wait>",
+        " locale=en_US<wait>",
+        " netcfg/get_domain=localdomain<wait>",
+        " netcfg/get_hostname=localhost<wait>",
+        " noapic<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
+        " -- <wait>",
+        "<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 40960,
+      "skip_compaction": true,
+      "guest_os_type": "ubuntu-64",
+      "http_directory": "http",
+      "iso_checksum": "af224223de99e2a730b67d7785b657f549be0d63221188e105445f75fb8305c9",
+      "iso_checksum_type": "sha256",
+      "iso_urls": [
+        "{{user `mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
+      ],
+      "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
+      "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_wait_timeout": "10000s",
+      "tools_upload_flavor": "linux",
+      "vmx_data": {
+        "numvcpus": "1",
+        "cpuid.coresPerSocket": "1",
+        "memsize": "384"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "files/common",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
+      "source": "files/vagrant",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
+      "only": [
+        "vagrant-vmware"
+      ],
+      "source": "files/vmware",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "shell",
+      "environment_vars": [
+        "BUILD_NUMBER={{user `build_number`}}",
+        "PACKER_BUILD_NAME={{user `name`}}",
+        "PACKER_BUILD_TIMESTAMP={{timestamp}}",
+        "PACKER_BUILD_VERSION={{user `version`}}",
+        "DOCKER_VERSION={{user `docker_version`}}",
+        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}"
+
+      ],
+      "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash '{{ .Path }}'",
+      "scripts": [
+        "scripts/vagrant/hostname.sh",
+        "scripts/common/update.sh",
+        "scripts/common/packages.sh",
+        "scripts/vagrant/packages.sh",
+        "scripts/common/sshd.sh",
+        "scripts/vagrant/motd.sh",
+        "scripts/common/motd.sh",
+        "scripts/common/reboot.sh",
+        "scripts/vagrant/vagrant.sh",
+        "scripts/common/disable-ipv6.sh",
+        "scripts/common/networking.sh",
+        "scripts/vagrant/guest-additions.sh",
+        "scripts/common/python-pip.sh",
+        "scripts/common/docker.sh",
+        "scripts/common/sudoers.sh",
+        "scripts/vagrant/grub.sh",
+        "scripts/common/clean-up.sh",
+        "scripts/vagrant/minimize.sh"
+      ]
+    }
+  ],
+
+  "post-processors": [
+    {
+      "type": "vagrant",
+      "vagrantfile_template": "templates/Vagrantfile.template",
+      "output": "../images/vagrant-{{ .Provider }}/{{user `name`}}.box",
+      "keep_input_artifact": false,
+      "compression_level": 9
+    }
+  ]
+}
