@@ -5,6 +5,7 @@
     "version": "0.1.0",
     "mirror": "http://jp.releases.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
+    "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
     "headless": true
   },
   "description": "{{user `description`}}",
@@ -143,6 +144,11 @@
     },
     {
       "type": "file",
+      "source": "files/chef",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/vagrant",
       "destination": "/var/tmp"
     },
@@ -160,7 +166,8 @@
         "BUILD_NUMBER={{user `build_number`}}",
         "PACKER_BUILD_NAME={{user `name`}}",
         "PACKER_BUILD_TIMESTAMP={{timestamp}}",
-        "PACKER_BUILD_VERSION={{user `version`}}"
+        "PACKER_BUILD_VERSION={{user `version`}}",
+        "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
       "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash '{{ .Path }}'",
       "scripts": [

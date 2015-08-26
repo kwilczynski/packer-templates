@@ -7,6 +7,7 @@
     "build_number": "{{env `BUILD_NUMBER`}}",
     "docker_version": "{{env `DOCKER_VERSION`}}",
     "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
+    "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
     "headless": true
   },
   "description": "{{user `description`}}",
@@ -145,6 +146,11 @@
     },
     {
       "type": "file",
+      "source": "files/chef",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/vagrant",
       "destination": "/var/tmp"
     },
@@ -164,7 +170,8 @@
         "PACKER_BUILD_TIMESTAMP={{timestamp}}",
         "PACKER_BUILD_VERSION={{user `version`}}",
         "DOCKER_VERSION={{user `docker_version`}}",
-        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}"
+        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
+        "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
       "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash '{{ .Path }}'",
       "scripts": [
