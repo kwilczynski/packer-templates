@@ -8,7 +8,7 @@
     "docker_version": "{{env `DOCKER_VERSION`}}",
     "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
-    "headless": true
+    "headless": "true"
   },
   "description": "{{user `description`}}",
   "builders": [

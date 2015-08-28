@@ -6,7 +6,7 @@
     "mirror": "http://jp.releases.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
-    "headless": true
+    "headless": "true"
   },
   "description": "{{user `description`}}",
   "builders": [
