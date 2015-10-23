@@ -5,6 +5,7 @@
     "version": "0.1.0",
     "mirror": "http://jp.releases.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
+    "chef_client": "false",
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
     "headless": "true"
   },
@@ -68,6 +69,12 @@
           "{{ .Name }}",
           "--cpus",
           "1"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--nictype1",
+          "virtio"
         ],
         [
           "modifyvm",
@@ -184,6 +191,7 @@
         "scripts/common/networking.sh",
         "scripts/vagrant/guest-additions.sh",
         "scripts/common/python-pip.sh",
+        "{{if (user `chef_client`) ne `false` }}scripts/common/chef-client.sh{{else}}{{end}}",
         "scripts/common/sudoers.sh",
         "scripts/vagrant/grub.sh",
         "scripts/common/clean-up.sh",

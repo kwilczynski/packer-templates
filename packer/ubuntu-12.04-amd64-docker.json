@@ -7,6 +7,7 @@
     "build_number": "{{env `BUILD_NUMBER`}}",
     "docker_version": "{{env `DOCKER_VERSION`}}",
     "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
+    "chef_client": "false",
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
     "headless": "true"
   },
@@ -70,6 +71,12 @@
           "{{ .Name }}",
           "--cpus",
           "1"
+        ],
+        [
+          "modifyvm",
+          "{{ .Name }}",
+          "--nictype1",
+          "virtio"
         ],
         [
           "modifyvm",
@@ -188,6 +195,7 @@
         "scripts/common/networking.sh",
         "scripts/vagrant/guest-additions.sh",
         "scripts/common/python-pip.sh",
+        "{{if (user `chef_client`) ne `false` }}scripts/common/chef-client.sh{{else}}{{end}}",
         "scripts/common/docker.sh",
         "scripts/common/sudoers.sh",
         "scripts/vagrant/grub.sh",
