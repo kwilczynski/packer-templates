@@ -7,6 +7,12 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
+for s in syslog syslog-ng rsyslog; do
+    service rsyslog stop || true
+done
+
+logrotate –f /etc/logrotate.conf
+
 # Remove everything (configuration files, etc.) left after
 # packages were uninstalled (often unused files are left on
 # the file system).
