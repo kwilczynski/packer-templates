@@ -3,8 +3,8 @@
     "name": "ubuntu-12.04-amd64-docker",
     "description": "Ubuntu 12.04 x86_64 (amd64) with Docker",
     "version": "0.1.0",
-    "archive_mirror": "http://jp.archive.ubuntu.com/ubuntu",
-    "releases_mirror": "http://jp.releases.ubuntu.com",
+    "archive_mirror": "jp.archive.ubuntu.com",
+    "releases_mirror": "jp.releases.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
     "docker_version": "{{env `DOCKER_VERSION`}}",
     "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
@@ -38,7 +38,7 @@
         " locale=en_US<wait>",
         " netcfg/get_domain=localdomain<wait>",
         " netcfg/get_hostname=localhost<wait>",
-        " mirror/http/hostname={{ user `releases_mirror`}}",
+        " mirror/http/hostname={{ user `archive_mirror`}}",
         " noapic<wait>",
         " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
         " -- <wait>",
@@ -52,7 +52,7 @@
       "iso_checksum": "af224223de99e2a730b67d7785b657f549be0d63221188e105445f75fb8305c9",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -118,6 +118,7 @@
         " locale=en_US<wait>",
         " netcfg/get_domain=localdomain<wait>",
         " netcfg/get_hostname=localhost<wait>",
+        " mirror/http/hostname={{ user `archive_mirror`}}",
         " noapic<wait>",
         " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
         " -- <wait>",
@@ -131,7 +132,7 @@
       "iso_checksum": "af224223de99e2a730b67d7785b657f549be0d63221188e105445f75fb8305c9",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -174,8 +175,7 @@
     {
       "type": "shell",
       "environment_vars": [
-        "ARCHIVE_MIRROR={{user `archive_mirror`}}",
-        "RELEASES_MIRROR={{user `releases_mirror`}}",
+        "ARCHIVE_MIRROR=http://{{user `archive_mirror`}}/ubuntu",
         "BUILD_NUMBER={{user `build_number`}}",
         "PACKER_BUILD_NAME={{user `name`}}",
         "PACKER_BUILD_TIMESTAMP={{timestamp}}",
