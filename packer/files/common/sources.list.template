@@ -34,12 +34,12 @@ deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates multiverse
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-backports main restricted universe multiverse
 deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-backports main restricted universe multiverse
 
-deb http://security.ubuntu.com/ubuntu ${UBUNTU_RELEASE}-security main restricted
-deb-src http://security.ubuntu.com/ubuntu ${UBUNTU_RELEASE}-security main restricted
-deb http://security.ubuntu.com/ubuntu ${UBUNTU_RELEASE}-security universe
-deb-src http://security.ubuntu.com/ubuntu ${UBUNTU_RELEASE}-security universe
-deb http://security.ubuntu.com/ubuntu ${UBUNTU_RELEASE}-security multiverse
-deb-src http://security.ubuntu.com/ubuntu ${UBUNTU_RELEASE}-security multiverse
+deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security main restricted
+deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security main restricted
+deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security universe
+deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security universe
+deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security multiverse
+deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security multiverse
 
 ## Uncomment the following two lines to add software from Canonical's
 ## 'partner' repository.

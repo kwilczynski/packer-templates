@@ -11,7 +11,7 @@ for s in syslog syslog-ng rsyslog; do
     service rsyslog stop || true
 done
 
-logrotate –f /etc/logrotate.conf
+logrotate –f /etc/logrotate.conf || true
 
 # Remove everything (configuration files, etc.) left after
 # packages were uninstalled (often unused files are left on

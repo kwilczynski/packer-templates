@@ -156,6 +156,11 @@
     },
     {
       "type": "file",
+      "source": "files/docker",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/chef",
       "destination": "/var/tmp"
     },
