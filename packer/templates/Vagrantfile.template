@@ -1,6 +1,9 @@
 Vagrant.configure('2') do |config|
   config.ssh.forward_agent = true
-  config.vm.box_check_update = true
+
+  if config.vm.respond_to? :box_check_update
+    config.vm.box_check_update = true
+  end
 
   config.vm.provider :virtualbox do |vm, override|
     vm.customize [ 'modifyvm', :id,
