@@ -117,11 +117,14 @@ rm -f /var/tmp/common/sources.list.template
 
 apt-get -y --force-yes update
 
+UBUNTU_KERNEL_RELEASE='vivid'
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    apt-get -y --force-yes install linux-generic-lts-trusty
-    apt-get -y --force-yes install linux-image-generic-lts-trusty
-    apt-get -y --force-yes install linux-headers-generic-lts-trusty
+    UBUNTU_KERNEL_RELEASE='trusty'
 fi
+
+apt-get -y --force-yes install linux-generic-lts-${UBUNTU_KERNEL_RELEASE}
+apt-get -y --force-yes install linux-image-generic-lts-${UBUNTU_KERNEL_RELEASE}
+apt-get -y --force-yes install linux-headers-generic-lts-${UBUNTU_KERNEL_RELEASE}
 
 apt-get -y --force-yes --no-install-recommends install linux-headers-$(uname -r)
 
