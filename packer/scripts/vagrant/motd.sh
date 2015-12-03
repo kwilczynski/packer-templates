@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -16,6 +16,7 @@ readonly BUILD_DATE="$(date -d @${BUILD_TIMESTAMP})"
 
 cat <<EOF | tee /etc/os-release-vagrant
 BUILD_NAME="${PACKER_BUILD_NAME:-"UNKNOWN"}"
+BUILD_NUMBER=${BUILD_NUMBER:-0}
 BUILD_TIMESTAMP=$BUILD_TIMESTAMP
 BUILD_DATE="${BUILD_DATE}"
 BUILDER_TYPE="${PACKER_BUILDER_TYPE:-"UNKNOWN"}"

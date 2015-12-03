@@ -7,6 +7,12 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
+# This is only applicable when building Amazon EC2 image (AMI).
+AMAZON_EC2='no'
+if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/null; then
+    AMAZON_EC2='yes'
+fi
+
 for s in syslog syslog-ng rsyslog; do
     service rsyslog stop || true
 done
@@ -29,14 +35,14 @@ dpkg -l | awk '{ print $2 }' | grep 'linux-image-.*-generic' | grep -v $(uname -
 
 PACKAGES_TO_PURGE=(
     ^apport* ^avahi-* ^command-not-found* ^cryptsetup* ^debian-faq*
-    ^doc-* ^grub-efi-amd64* ^libruby* ^libx11-* ^manpages* ^ppp* ^ruby*
+    ^doc-* ^grub-efi-amd64* ^libx11-* ^manpages* ^ppp*
     ^ubuntu-release-upgrader-core* ^update-manager-core* ^virtualbox*
     ^wireless-* ^zeitgeist* apt-xapian-index aptitude byobu cpp-doc
     crda cups debconf-i18n dictionaries dosfstools ed efibootmgr eject
     fdutils finger fonts-ubuntu-font-family-console foomatic-filters
     friendly-recovery g++ gcc-doc hplip iamerican ibritish info install-info
-    installation-report iw kpartx krb5-locales laptop-detect libxcb1 libxext6
-    libxmuu1 man-db mlocate modemmanager mutt ntfs-3g open-vm-tools parted
+    installation-report iw krb5-locales laptop-detect libxcb1 libxext6
+    libxmuu1 man-db mlocate modemmanager mutt ntfs-3g open-vm-tools
     open-vm-tools plymouth-theme-ubuntu-text policykit-1 pollinate
     popularity-contest powermgmt-base python-zeitgeist read-edid reportbug
     rhythmbox-plugin-zeitgeist run-one sbsigntool screen secureboot-db
@@ -45,6 +51,10 @@ PACKAGES_TO_PURGE=(
     xauth zeroinstall-injector mono-common libxcb1 fonts-dejavu-core
     fontconfig-config libfontconfig1 libxpm4 libgd3
 )
+
+if [[ $AMAZON_EC2 == 'no' ]]; then
+    PACKAGES_TO_PURGE+=( parted kpartx ^ruby* ^libruby* )
+fi
 
 for p in ${PACKAGES_TO_PURGE[@]}; do
     apt-get -y --force-yes purge $p 2> /dev/null || true
@@ -75,19 +85,15 @@ done
 service ondemand stop
 update-rc.d -f ondemand disable
 
-# VMWare uses DHCP behind the scene, thus we need to remove
-# the host name entry as it's not going to be valid any more
-# after the machine will be brought up again in the future.
-if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
-    IP_ADDRESS=$(hostname -I | cut -d' ' -f 1)
-    sed -i -e \
-        "/^${IP_ADDRESS}/d; /^$/d" \
-        /etc/hosts
-fi
+# Disabled for now, as it breaks the "initscripts" package post-install job.
+# dpkg-divert --rename /etc/init.d/ondemand
 
 rm -f /boot/grub/menu.lst_*
 rm -f /etc/network/interfaces.old
-rm -f /etc/apt/apt.conf.d/99dpkg
+
+rm -f /etc/apt/apt.conf.d/99dpkg \
+      /etc/apt/apt.conf.d/00CDMountPoint
+
 rm -f VBoxGuestAdditions_*.iso VBoxGuestAdditions_*.iso.?
 
 rm -f /root/.bash_history \
@@ -120,6 +126,32 @@ for u in vagrant ubuntu; do
                /home/${u}/*
     fi
 done
+
+# Clean if there are any Python software installed there.
+if ls /opt/*/share &>/dev/null; then
+  find /opt/*/share -type d -name 'man' -exec rm -rf '{}' \;
+fi
+
+if [[ $AMAZON_EC2 == 'no' ]]; then
+    # VMWare uses DHCP behind the scene, thus we need to remove
+    # the host name entry as it's not going to be valid any more
+    # after the machine will be brought up again in the future.
+    if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
+        IP_ADDRESS=$(hostname -I | cut -d' ' -f 1)
+        sed -i -e \
+            "/^${IP_ADDRESS}/d; /^$/d" \
+            /etc/hosts
+    fi
+
+    rm -rf /tmp/* /var/tmp/*
+else
+    if [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
+        # Will be excluded during the volume bundling process
+        # only when building Instance Store type image, thus
+        # we clean-up manually.
+        rm -rf /tmp/* /var/tmp/*
+    fi
+fi
 
 rm -rf /usr/share/{doc,man}/*
 
@@ -169,12 +201,16 @@ rm -rf /tmp/locale
 find /etc /var /usr -type f -name '*~' -exec rm -f '{}' \;
 find /var/log /var/cache /var/lib/apt -type f -exec rm -rf '{}' \;
 
-# Only the Vagrant user should keep its SSH key. Everything
-# else will either use the user left form the image creation
-# time, or a new key will be fetched and stored by means of
-# cloud-init, etc.
-if ! getent passwd vagrant &> /dev/null; then
+if [[ $AMAZON_EC2 == 'yes' ]]; then
     find /etc /root /home -type f -name 'authorized_keys' -exec rm -f '{}' \;
+else
+  # Only the Vagrant user should keep its SSH key. Everything
+  # else will either use the user left form the image creation
+  # time, or a new key will be fetched and stored by means of
+  # cloud-init, etc.
+  if ! getent passwd vagrant &> /dev/null; then
+      find /etc /root /home -type f -name 'authorized_keys' -exec rm -f '{}' \;
+  fi
 fi
 
 mkdir -p /var/lib/apt/periodic \

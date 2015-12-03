@@ -8,6 +8,19 @@
     "build_number": "{{env `BUILD_NUMBER`}}",
     "chef_client": "false",
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
+    "awscli_version": "{{env `AWSCLI_VERSION`}}",
+    "ec2_ami_tools_version": "{{env `EC2_AMI_TOOLS_VERSION`}}",
+    "account_id": "{{env `AWS_ACCOUNT_ID`}}",
+    "access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "x509_key_path": "{{env `EC2_PRIVATE_KEY`}}",
+    "x509_cert_path": "{{env `EC2_CERT`}}",
+    "region": "{{env `AWS_DEFAULT_REGION`}}",
+    "vpc_id": "{{env `EC2_VPC_ID`}}",
+    "subnet_id": "{{env `EC2_SUBNET_ID`}}",
+    "s3_bucket": "{{env `S3_BUCKET`}}",
+    "instance_type": "m3.medium",
+    "source_ami": "{{env `EC2_SOURCE_AMI`}}",
     "headless": "true"
   },
   "description": "{{user `description`}}",
@@ -144,6 +157,68 @@
         "cpuid.coresPerSocket": "1",
         "memsize": "384"
       }
+    },
+    {
+      "type": "amazon-ebs",
+      "ami_name": "{{user `name`}}-{{timestamp}}",
+      "ami_description": "{{user `description`}}",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region`}}",
+      "vpc_id": "{{user `vpc_id`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "instance_type": "{{user `instance_type`}}",
+      "source_ami": "{{user `source_ami`}}",
+      "ami_virtualization_type": "hvm",
+      "associate_public_ip_address": "true",
+      "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
+      "ssh_username": "ubuntu",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "volume_type": "gp2",
+          "volume_size": 10,
+          "delete_on_termination": true
+        }
+      ],
+      "tags": {
+        "Name": "{{user `name`}}",
+        "Version": "{{user `version`}}",
+        "CreationDate": "{{isotime \"Mon Jan _2 15:04:05 UTC 2006\"}}",
+        "Architecture": "x86_64",
+        "RootDeviceType": "ebs"
+      }
+    },
+    {
+      "type": "amazon-instance",
+      "ami_name": "{{user `name`}}-{{timestamp}}",
+      "ami_description": "{{user `description`}}",
+      "account_id": "{{user `account_id`}}",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "x509_key_path": "{{user `x509_key_path`}}",
+      "x509_cert_path": "{{user `x509_cert_path`}}",
+      "x509_upload_path": "/var/tmp",
+      "region": "{{user `region`}}",
+      "vpc_id": "{{user `vpc_id`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "s3_bucket": "{{user `s3_bucket`}}/{{user `name`}}-{{timestamp}}",
+      "instance_type": "{{user `instance_type`}}",
+      "source_ami": "{{user `source_ami`}}",
+      "ami_virtualization_type": "hvm",
+      "associate_public_ip_address": "true",
+      "bundle_prefix": "{{user `name`}}-{{timestamp}}",
+      "bundle_vol_command": "sudo -H -S -E -n bash /var/tmp/ec2/ec2-bundle-vol.sh -k {{.KeyPath}} -u {{.AccountId}} -c {{.CertPath}} -r {{.Architecture}} -d {{.Destination}} -p {{.Prefix}}",
+      "bundle_upload_command": "sudo -H -S -E -n bash /var/tmp/ec2/ec2-upload-bundle.sh -b {{.BucketName}} -m {{.ManifestPath}} -a {{.AccessKey}} -s {{.SecretKey}} -d {{.BundleDirectory}} --region {{.Region}}",
+      "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
+      "ssh_username": "ubuntu",
+      "tags": {
+        "Name": "{{user `name`}}",
+        "Version": "{{user `version`}}",
+        "CreationDate": "{{isotime \"Mon Jan _2 15:04:05 UTC 2006\"}}",
+        "Architecture": "x86_64",
+        "RootDeviceType": "instance-store"
+      }
     }
   ],
   "provisioners": [
@@ -159,6 +234,10 @@
     },
     {
       "type": "file",
+      "only": [
+        "vagrant-virtualbox",
+        "vagrant-vmware"
+      ],
       "source": "files/vagrant",
       "destination": "/var/tmp"
     },
@@ -171,7 +250,20 @@
       "destination": "/var/tmp"
     },
     {
+      "type": "file",
+      "only": [
+        "amazon-ebs",
+        "amazon-instance"
+      ],
+      "source": "files/ec2",
+      "destination": "/var/tmp"
+    },
+    {
       "type": "shell",
+      "only": [
+        "vagrant-virtualbox",
+        "vagrant-vmware"
+      ],
       "environment_vars": [
         "ARCHIVE_MIRROR=http://{{user `archive_mirror`}}/ubuntu",
         "BUILD_NUMBER={{user `build_number`}}",
@@ -201,12 +293,80 @@
         "scripts/common/clean-up.sh",
         "scripts/vagrant/minimize.sh"
       ]
+    },
+    {
+      "type": "shell",
+      "only": [
+        "amazon-ebs",
+        "amazon-instance"
+      ],
+      "environment_vars": [
+        "ARCHIVE_MIRROR=http://{{user `archive_mirror`}}/ubuntu",
+        "BUILD_NUMBER={{user `build_number`}}",
+        "PACKER_BUILD_NAME={{user `name`}}",
+        "PACKER_BUILD_TIMESTAMP={{timestamp}}",
+        "PACKER_BUILD_VERSION={{user `version`}}",
+        "PACKER_SOURCE_AMI={{user `source_ami`}}",
+        "AWS_DEFAULT_REGION={{user `region`}}",
+        "AWSCLI_VERSION={{user `awscli_version`}}",
+        "EC2_AMI_TOOLS_VERSION={{user `ec2_ami_tools_version`}}",
+        "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
+      ],
+      "execute_command": "{{ .Vars }} sudo -H -S -E -n bash '{{ .Path }}'",
+      "override": {
+        "amazon-ebs": {
+          "scripts": [
+            "scripts/ec2/hostname.sh",
+            "scripts/common/update.sh",
+            "scripts/common/packages.sh",
+            "scripts/ec2/packages.sh",
+            "scripts/common/sshd.sh",
+            "scripts/ec2/motd.sh",
+            "scripts/common/motd.sh",
+            "scripts/ec2/resize-root.sh",
+            "scripts/common/reboot.sh",
+            "scripts/common/disable-ipv6.sh",
+            "scripts/common/networking.sh",
+            "scripts/common/python-pip.sh",
+            "{{if (user `chef_client`) ne `false` }}scripts/common/chef-client.sh{{else}}{{end}}",
+            "scripts/common/docker.sh",
+            "scripts/common/awscli.sh",
+            "scripts/common/clean-up.sh",
+            "scripts/common/sudoers.sh",
+            "scripts/ec2/grub.sh"
+          ]
+        },
+        "amazon-instance": {
+          "scripts": [
+            "scripts/ec2/hostname.sh",
+            "scripts/common/update.sh",
+            "scripts/common/packages.sh",
+            "scripts/ec2/packages.sh",
+            "scripts/common/sshd.sh",
+            "scripts/ec2/motd.sh",
+            "scripts/common/motd.sh",
+            "scripts/common/reboot.sh",
+            "scripts/common/disable-ipv6.sh",
+            "scripts/common/networking.sh",
+            "scripts/ec2/ec2-ami-tools.sh",
+            "scripts/common/python-pip.sh",
+            "{{if (user `chef_client`) ne `false` }}scripts/common/chef-client.sh{{else}}{{end}}",
+            "scripts/common/awscli.sh",
+            "scripts/common/clean-up.sh",
+            "scripts/common/sudoers.sh",
+            "scripts/ec2/grub.sh"
+          ]
+        }
+      }
     }
   ],
-
   "post-processors": [
     {
       "type": "vagrant",
+      "except": [
+        "amazon-ebs",
+        "amazon-instance"
+      ],
       "vagrantfile_template": "templates/Vagrantfile.template",
       "output": "../images/vagrant-{{ .Provider }}/{{user `name`}}.box",
       "keep_input_artifact": false,

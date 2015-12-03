@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 _select_platform() {
     case "$(uname -m)" in

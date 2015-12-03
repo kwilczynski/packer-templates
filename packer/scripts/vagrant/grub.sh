@@ -6,10 +6,8 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 KERNEL_OPTIONS=(
     quiet divider=10
-    tsc=reliable
-    elevator=noop
-    net.ifnames=0
-    biosdevname=0
+    tsc=reliable elevator=noop
+    net.ifnames=0 biosdevname=0
 )
 
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
@@ -30,6 +28,7 @@ sed -i -e \
     "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
     /etc/default/grub
 
+# Not really needed.
 rm -f /boot/grub/device.map
 
 update-initramfs -u -k all

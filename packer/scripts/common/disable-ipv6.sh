@@ -23,6 +23,12 @@ chown root:root /etc/modprobe.d/blacklist-ipv6.conf \
 chmod 644 /etc/modprobe.d/blacklist-ipv6.conf \
           /etc/sysctl.d/10-disable-ipv6.conf
 
-sed -i -e \
-    's/GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 ipv6.disable=1"/g' \
-    /etc/default/grub
+if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
+    sed -i -e \
+        's/GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 ipv6.disable=1"/g' \
+        /etc/default/grub
+else
+    sed -i -e \
+        's/#.defoptions=\(.*\)/# defoptions=\1 ipv6.disable=1/' \
+        /boot/grub/menu.lst
+fi
