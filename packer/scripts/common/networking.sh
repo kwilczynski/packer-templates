@@ -37,12 +37,12 @@ if [[ -d /etc/network/interfaces.d ]]; then
 auto eth0
 iface eth0 inet dhcp
 pre-up sleep 2
-post-up ethtool -K eth0 tso off gso off
+post-up ethtool -K eth0 tso off gso off lro off
 EOF
 else
     cat <<'EOF' | tee -a /etc/network/interfaces
 pre-up sleep 2
-post-up ethtool -K eth0 tso off gso off
+post-up ethtool -K eth0 tso off gso off lro off
 EOF
 fi
 
@@ -51,6 +51,13 @@ apt-get -y --force-yes install sysfsutils
 cat <<'EOF' | tee -a /etc/sysfs.conf
 class/net/eth0/queues/rx-0/rps_cpus = f
 class/net/eth0/queues/tx-0/xps_cpus = f
+EOF
+
+# Adjust the queue size (for a moderate load on the node)
+# accordingly when using Receive Packet Steering (RPS)
+# functionality.
+cat <<'EOF' | tee -a /etc/sysfs.conf
+class/net/eth0/queues/rx-0/rps_flow_cnt = 32768
 EOF
 
 chown root:root /etc/sysfs.conf

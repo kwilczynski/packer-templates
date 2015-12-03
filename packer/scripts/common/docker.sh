@@ -138,9 +138,15 @@ hash -r
 KERNEL_OPTIONS=( swapaccount=1 cgroup_enable=memory )
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 
-sed -i -e \
-    "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/g" \
-    /etc/default/grub
+if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
+    sed -i -e \
+        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        /etc/default/grub
+else
+    sed -i -e \
+        "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        /boot/grub/menu.lst
+fi
 
 if [[ -f /etc/default/ufw ]]; then
     sed -i -e \
@@ -151,6 +157,8 @@ fi
 grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
     sort -gr | cut -d' ' -f2- | xargs umount -l -f 2> /dev/null || true
 
+# This would normally be on a separate volume,
+# and most likely formatted to use "btrfs".
 for d in /srv/docker /var/lib/docker; do
   [[ -d $d ]] || mkdir -p $d
 

@@ -134,6 +134,13 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get -y --force-yes install libreadline-dev dpkg
 fi
 
+cat <<'EOF' | tee /etc/timezone
+Etc/UTC
+EOF
+
+chown root:root /etc/timezone
+chmod 644 /etc/timezone
+
 dpkg-reconfigure tzdata
 
 cat <<'EOF' | tee /var/lib/locales/supported.d/en
@@ -178,7 +185,7 @@ cat <<EOF | sed -e '/^$/d' | tee /etc/resolvconf/resolv.conf.d/tail
 $(for s in ${NAME_SERVERS[@]}; do
     echo "nameserver $s"
 done)
-options timeout:2 attempts:1 rotate
+options timeout:2 attempts:1 rotate single-request-reopen
 EOF
 
 chown root:root /etc/resolvconf/resolv.conf.d/tail
