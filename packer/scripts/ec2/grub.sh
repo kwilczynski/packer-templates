@@ -37,8 +37,16 @@ sed -i -e \
     "s/#.indomU=.*/# indomU=detect/" \
     /boot/grub/menu.lst
 
-sed -i -e \
+# Remove any repeated (de-duplicate) Kernel options.
+OPTIONS=$(sed -e \
     "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+    /boot/grub/menu.lst | \
+        egrep '#.defoptions=' /boot/grub/menu.lst | \
+            sed -e 's/.*defoptions=//' | \
+            tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+sed -i -e \
+    "s/#.defoptions=.*/# defoptions=${OPTIONS}/" \
     /boot/grub/menu.lst
 
 sed -i -e \

@@ -28,6 +28,18 @@ sed -i -e \
     "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
     /etc/default/grub
 
+# Remove any repeated (de-duplicate) Kernel options.
+OPTIONS=$(sed -e \
+    "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+    /etc/default/grub | \
+        egrep '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub | \
+            sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
+            tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+sed -i -e \
+    "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/g" \
+    /etc/default/grub
+
 # Not really needed.
 rm -f /boot/grub/device.map
 

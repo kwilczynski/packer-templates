@@ -139,12 +139,28 @@ KERNEL_OPTIONS=( swapaccount=1 cgroup_enable=memory )
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 
 if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
-    sed -i -e \
+    # Remove any repeated (de-duplicate) Kernel options.
+    OPTIONS=$(sed -e \
         "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        /etc/default/grub | \
+            egrep '^GRUB_CMDLINE_LINUX=' /etc/default/grub | \
+                sed -e 's/GRUB_CMDLINE_LINUX=\"\(.*\)\"/\1/' | \
+                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+    sed -i -e \
+        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"${OPTIONS}\"/g" \
         /etc/default/grub
 else
-    sed -i -e \
+    # Remove any repeated (de-duplicate) Kernel options.
+    OPTIONS=$(sed -e \
         "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        /boot/grub/menu.lst | \
+            egrep '#.defoptions=' /boot/grub/menu.lst | \
+                sed -e 's/.*defoptions=//' | \
+                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+    sed -i -e \
+        "s/#.defoptions=.*/# defoptions=${OPTIONS}/" \
         /boot/grub/menu.lst
 fi
 
