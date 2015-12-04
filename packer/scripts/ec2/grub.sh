@@ -37,20 +37,20 @@ sed -i -e \
     "s/#.indomU=.*/# indomU=detect/" \
     /boot/grub/menu.lst
 
+sed -i -e \
+    's/console=hvc0/console=ttyS0/g' \
+    /boot/grub/menu.lst
+
 # Remove any repeated (de-duplicate) Kernel options.
 OPTIONS=$(sed -e \
     "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
     /boot/grub/menu.lst | \
-        egrep '#.defoptions=' /boot/grub/menu.lst | \
+        egrep '#.defoptions=' | \
             sed -e 's/.*defoptions=//' | \
-            tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
 sed -i -e \
     "s/#.defoptions=.*/# defoptions=${OPTIONS}/" \
-    /boot/grub/menu.lst
-
-sed -i -e \
-    's/console=hvc0/console=ttyS0/g' \
     /boot/grub/menu.lst
 
 # We don't care about UEFI firmware in case of legacy grub.

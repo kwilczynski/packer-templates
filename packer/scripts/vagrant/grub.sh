@@ -32,9 +32,9 @@ sed -i -e \
 OPTIONS=$(sed -e \
     "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
     /etc/default/grub | \
-        egrep '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub | \
+        egrep '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
             sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
-            tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
 sed -i -e \
     "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/g" \

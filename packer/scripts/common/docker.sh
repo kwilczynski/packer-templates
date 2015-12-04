@@ -143,9 +143,9 @@ if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
     OPTIONS=$(sed -e \
         "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/g" \
         /etc/default/grub | \
-            egrep '^GRUB_CMDLINE_LINUX=' /etc/default/grub | \
+            egrep '^GRUB_CMDLINE_LINUX=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX=\"\(.*\)\"/\1/' | \
-                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
         "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"${OPTIONS}\"/g" \
@@ -155,9 +155,9 @@ else
     OPTIONS=$(sed -e \
         "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
         /boot/grub/menu.lst | \
-            egrep '#.defoptions=' /boot/grub/menu.lst | \
+            egrep '#.defoptions=' | \
                 sed -e 's/.*defoptions=//' | \
-                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
         "s/#.defoptions=.*/# defoptions=${OPTIONS}/" \

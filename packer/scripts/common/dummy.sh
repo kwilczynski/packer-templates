@@ -1,5 +1,4 @@
 #!/bin/bash
 
 # Do nothing.
-
 exit 0

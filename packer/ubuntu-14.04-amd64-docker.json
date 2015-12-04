@@ -3,8 +3,8 @@
     "name": "ubuntu-14.04-amd64-docker",
     "description": "Ubuntu 14.04 x86_64 (amd64) with Docker",
     "version": "0.1.0",
-    "archive_mirror": "jp.archive.ubuntu.com",
     "releases_mirror": "jp.releases.ubuntu.com",
+    "archive_mirror": "jp.archive.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
     "docker_version": "{{env `DOCKER_VERSION`}}",
     "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
@@ -51,7 +51,8 @@
         " locale=en_US<wait>",
         " netcfg/get_domain=localdomain<wait>",
         " netcfg/get_hostname=localhost<wait>",
-        " mirror/http/hostname={{ user `archive_mirror`}}",
+        " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
+        " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
         " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-14.04/preseed.cfg<wait>",
         " -- <wait>",
@@ -131,7 +132,8 @@
         " locale=en_US<wait>",
         " netcfg/get_domain=localdomain<wait>",
         " netcfg/get_hostname=localhost<wait>",
-        " mirror/http/hostname={{ user `archive_mirror`}}",
+        " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
+        " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
         " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-14.04/preseed.cfg<wait>",
         " -- <wait>",
@@ -224,11 +226,6 @@
     }
   ],
   "provisioners": [
-    {
-      "type": "file",
-      "source": "files/common",
-      "destination": "/var/tmp"
-    },
     {
       "type": "file",
       "source": "files/docker",

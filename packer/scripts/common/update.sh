@@ -107,26 +107,26 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     rm -rf /var/lib/apt/lists
 fi
 
-eval "echo \"$(cat /var/tmp/common/sources.list.template)\"" | \
-    tee /etc/apt/sources.list
+# By default, the `cloud-init` will override the default mirror when run as
+# Amazon EC2 instance, thus we replace this file only when building Vagrant
+# boxes.
+if [[ $AMAZON_EC2 == 'no' ]]; then
+    # Render template overriding default list.
+    eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" | \
+        tee /etc/apt/sources.list
 
-chown root:root /etc/apt/sources.list
-chmod 644 /etc/apt/sources.list
+    chown root:root /etc/apt/sources.list
+    chmod 644 /etc/apt/sources.list
 
-rm -f /var/tmp/common/sources.list.template
+    rm -f /var/tmp/vagrant/sources.list.template
 
-apt-get -y --force-yes update
-
-UBUNTU_KERNEL_RELEASE='vivid'
-if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    UBUNTU_KERNEL_RELEASE='trusty'
+    apt-get -y --force-yes update
+else
+    # Allow some grace time for the `cloud-init` to override
+    # the default mirror.
+    sleep 30
+    apt-get -y --force-yes update
 fi
-
-apt-get -y --force-yes install linux-generic-lts-${UBUNTU_KERNEL_RELEASE}
-apt-get -y --force-yes install linux-image-generic-lts-${UBUNTU_KERNEL_RELEASE}
-apt-get -y --force-yes install linux-headers-generic-lts-${UBUNTU_KERNEL_RELEASE}
-
-apt-get -y --force-yes --no-install-recommends install linux-headers-$(uname -r)
 
 export UCF_FORCE_CONFFNEW=1
 ucf --purge /boot/grub/menu.lst
@@ -136,6 +136,17 @@ apt-get -y --force-yes dist-upgrade
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get -y --force-yes install libreadline-dev dpkg
 fi
+
+UBUNTU_BACKPORT='vivid'
+if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    UBUNTU_BACKPORT='trusty'
+fi
+
+apt-get -y --force-yes install linux-generic-lts-${UBUNTU_BACKPORT}
+apt-get -y --force-yes install linux-image-generic-lts-${UBUNTU_BACKPORT}
+apt-get -y --force-yes install linux-headers-generic-lts-${UBUNTU_BACKPORT}
+
+apt-get -y --force-yes --no-install-recommends install linux-headers-$(uname -r)
 
 cat <<'EOF' | tee /etc/timezone
 Etc/UTC

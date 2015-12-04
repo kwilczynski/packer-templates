@@ -155,8 +155,6 @@ fi
 
 rm -rf /usr/share/{doc,man}/*
 
-rm -rf /tmp/* /var/tmp/*
-
 sed -i -e \
     '/^.\+fd0/d;/^.\*floppy0/d' \
     /etc/fstab
