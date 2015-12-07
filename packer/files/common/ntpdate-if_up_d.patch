@@ -1,0 +1,26 @@
+--- ntpdate.orig	2015-12-07 10:53:22.425466474 +0000
++++ ntpdate	2015-12-07 10:54:23.464411781 +0000
+@@ -30,7 +30,7 @@
+ 	wait_for_file /usr/sbin/ntpdate-debian
+ fi
+
+-LOCKFILE=/var/lock/ntpdate-ifup
++LOCKFILE=/var/lock/ntpdate
+
+ # Avoid running more than one at a time
+ if [ -x /usr/bin/lockfile-create ]; then
+@@ -49,11 +49,11 @@
+
+ /usr/sbin/ntpdate-debian -s $OPTS 2>/dev/null || :
+
+-invoke-rc.d --quiet $service start >/dev/null 2>&1 || true
+-
+ if [ -x /usr/bin/lockfile-create ] ; then
+ 	kill $LOCKTOUCHPID
+ 	lockfile-remove $LOCKFILE
+ fi
+
+-) &
++invoke-rc.d --quiet $service start >/dev/null 2>&1 || true
++
++) </dev/null >/dev/null 2>&1 &

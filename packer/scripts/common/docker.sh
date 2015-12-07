@@ -25,22 +25,16 @@ fi
 
 apt-key add ${DOCKER_FILES}/docker.key
 
-apt-get -y --force-yes install apt-transport-https software-properties-common
-apt-get -y --force-yes update
-
-apt-get -y --force-yes install build-essential pkg-config swig
-apt-get -y --force-yes install libyaml-0-2 libgmp10
-apt-get -y --force-yes install python-dev libyaml-dev libgmp-dev libssl-dev
-apt-get -y --force-yes install procps pciutils
-apt-get -y --force-yes install btrfs-tools
-apt-get -y --force-yes install git
+# Only refresh packages index from Docker's repository.
+apt-get -y --force-yes update \
+    -o Dir::Etc::SourceList='sources.list.d/docker.list' \
+    -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
 PACKAGES=(
-    pkg-config swig
-    software-properties-common
-    libyaml-0-2 libgmp10 libzmq3
-    btrfs-tools
+    python-dev
+    libyaml-0-2 libyaml-dev
     pciutils procps
+    btrfs-tools
     git
 )
 
@@ -51,17 +45,9 @@ else
 fi
 
 for p in ${PACKAGES[@]}; do
-    if [[ $(dpkg -s $p 2>/dev/null) ]]; then
-        apt-mark manual $p
-    fi
+    apt-get -y --force-yes install $p
+    apt-mark manual $p
 done
-
-PACKAGE_NAME='lxc-docker'
-if [[ -n $DOCKER_VERSION ]]; then
-    PACKAGE_NAME="lxc-docker-${DOCKER_VERSION}"
-fi
-
-apt-get -y --force-yes --no-install-recommends install $PACKAGE_NAME
 
 service docker stop || true
 

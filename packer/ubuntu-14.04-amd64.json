@@ -226,6 +226,11 @@
   "provisioners": [
     {
       "type": "file",
+      "source": "files/common",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/chef",
       "destination": "/var/tmp"
     },

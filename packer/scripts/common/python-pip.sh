@@ -7,13 +7,16 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
-apt-get -y --force-yes install apt-transport-https software-properties-common
-apt-get -y --force-yes update
+# Refresh packages index only when needed.
+UPDATE_STAMP='/var/lib/apt/periodic/update-success-stamp'
+if [[ ! -f $UPDATE_STAMP ]] || \
+   (( $(date +%s) - $(date -r $UPDATE_STAMP +%s) > 900 )); then
+    apt-get -y --force-yes update
+fi
 
 apt-get -y --force-yes install python-setuptools
 
-apt-mark manual software-properties-common
-
+# Remove current and rather old version.
 apt-get -y --force-yes purge python-pip
 
 easy_install pip

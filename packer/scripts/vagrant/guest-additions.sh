@@ -62,10 +62,10 @@ case "$PACKER_BUILDER_TYPE" in
 
         # VMWare Tools HGFS module fails to compile on newer kernels,
         # see: https://github.com/rasa/vmware-tools-patches/issues/29
-        for o in '--dry-run' ''; do
+        for o in '--dry-run -s -i' '-i'; do
             # Note: This is expected to fail to apply cleanly on a sufficiently
             # up-to-date version of VMWare Tools.
-            if ! patch -l -t -p1 "$o" < ${VMWARE_FILES}/${PATCH_FILE}; then
+            if ! patch -l -t -p1 $o ${VMWARE_FILES}/${PATCH_FILE}; then
                 break
             fi
         done

@@ -26,9 +26,14 @@ iptables -P OUTPUT ACCEPT
 # source would not have it installed resulting in a failure to bring
 # the network interface (eth0) up on boot.
 if ! dpkg -s ethtool &>/dev/null; then
-    apt-get -y --force-yes update
-    apt-get -y --force-yes --no-install-recommends install ethtool
+    # Refresh packages index only when needed.
+    UPDATE_STAMP='/var/lib/apt/periodic/update-success-stamp'
+    if [[ ! -f $UPDATE_STAMP ]] || \
+       (( $(date +%s) - $(date -r $UPDATE_STAMP +%s) > 900 )); then
+        apt-get -y --force-yes update
+    fi
 
+    apt-get -y --force-yes --no-install-recommends install ethtool
     apt-mark manual ethtool
 fi
 

@@ -13,6 +13,8 @@ readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 # Get the major release version only.
 readonly UBUNTU_MAJOR_VERSION=$(lsb_release -r | awk '{ print $2 }' | cut -d . -f 1)
 
+readonly COMMON_FILES='/var/tmp/common'
+
 # This is only applicable when building Amazon EC2 image (AMI).
 AMAZON_EC2='no'
 if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/null; then
@@ -48,7 +50,16 @@ EOF
 chown root:root /etc/apt/apt.conf.d/15update-stamp
 chmod 644 /etc/apt/apt.conf.d/15update-stamp
 
-cat <<'EOF' | tee /etc/apt/apt.conf.d/99apt-acquire
+# Any Amazon EC2 instance can use local packages mirror, but quite often
+# such mirrors are backed by an S3 buckets causing performance drop due
+# to a known problem outside of the "us-east-1" region when using HTTP
+# pipelining for more efficient downloads.
+PIPELINE_DEPTH=5
+if [[ $AMAZON_EC2 == 'yes' ]]; then
+     PIPELINE_DEPTH=0
+fi
+
+cat <<EOF | tee /etc/apt/apt.conf.d/99apt-acquire
 Acquire
 {
     PDiffs "0";
@@ -62,7 +73,7 @@ Acquire
     http
     {
         Timeout "120";
-        Pipeline-Depth "5";
+        Pipeline-Depth "${PIPELINE_DEPTH}";
 
         No-cache "0";
         Max-Age "86400";
@@ -110,7 +121,7 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     rm -rf /var/lib/apt/lists
 fi
 
-# By default, the `cloud-init` will override the default mirror when run as
+# By default, the "cloud-init" will override the default mirror when run as
 # Amazon EC2 instance, thus we replace this file only when building Vagrant
 # boxes.
 if [[ $AMAZON_EC2 == 'no' ]]; then
@@ -125,7 +136,7 @@ if [[ $AMAZON_EC2 == 'no' ]]; then
 
     apt-get -y --force-yes update
 else
-    # Allow some grace time for the `cloud-init` to override
+    # Allow some grace time for the "cloud-init" to override
     # the default mirror.
     sleep 30
     apt-get -y --force-yes update
@@ -253,6 +264,26 @@ datasource_list: [ NoCloud, Ec2, None ]
 EOF
 
     dpkg-reconfigure cloud-init
+fi
+
+if dpkg -s ntpdate &>/dev/null; then
+    # The patch that fixes the race condition between the nptdate
+    # and ntpd which occurs during the system startup (more precisely
+    # when the network interface goes up and the helper script at
+    # "/etc/network/if-up.d/ntpdate" runs).
+    PATCH_FILE='ntpdate-if_up_d.patch'
+
+    pushd /etc/network/if-up.d &>/dev/null
+
+    for o in '--dry-run -s -i' '-i'; do
+        # Note: This is expected to fail to apply cleanly on a sufficiently
+        # up-to-date version the ntpdate package.
+        if ! patch -l -t -p0 $o ${COMMON_FILES}/${PATCH_FILE}; then
+            break
+        fi
+    done
+
+    popd &> /dev/null
 fi
 
 if [[ -d /etc/dhcp ]]; then
