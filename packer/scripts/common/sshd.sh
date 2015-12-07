@@ -2,14 +2,21 @@
 
 set -e
 
+SSH_SETTINGS=(
+    'UseDNS no'
+    'PermitRootLogin no'
+    'GSSAPIAuthentication no'
+)
+
 rm -f /etc/ssh/ssh_host_*
 ssh-keygen -A
 
-sed -i -e 's/.*UseDNS yes/UseDNS no/' \
-    /etc/ssh/sshd_config
+for v in "${SSH_SETTINGS[@]}"; do
+    SETTING=( $v )
 
-sed -i -e 's/.*PermitRootLogin yes/PermitRootLogin no/' \
-    /etc/ssh/sshd_config
+    sed -i -e "s/^#\?${SETTING[0]}.*/${v}/" \
+        /etc/ssh/sshd_config
 
-sed -i -e 's/.*GSSAPIAuthentication yes/GSSAPIAuthentication no/' \
-    /etc/ssh/sshd_config
+    egrep -q "$v" /etc/ssh/sshd_config &> /dev/null || \
+        echo "$v" | tee -a /etc/ssh/sshd_config
+done

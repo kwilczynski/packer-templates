@@ -10,6 +10,9 @@ export DEBCONF_NONINTERACTIVE_SEEN=true
 readonly UBUNTU_RELEASE=$(lsb_release -sc)
 readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 
+# Get the major release version only.
+readonly UBUNTU_MAJOR_VERSION=$(lsb_release -r | awk '{ print $2 }' | cut -d . -f 1)
+
 # This is only applicable when building Amazon EC2 image (AMI).
 AMAZON_EC2='no'
 if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/null; then
@@ -142,9 +145,16 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     UBUNTU_BACKPORT='trusty'
 fi
 
-apt-get -y --force-yes install linux-generic-lts-${UBUNTU_BACKPORT}
-apt-get -y --force-yes install linux-image-generic-lts-${UBUNTU_BACKPORT}
-apt-get -y --force-yes install linux-headers-generic-lts-${UBUNTU_BACKPORT}
+KERNEL_PACKAGES=(
+    linux-generic-lts-${UBUNTU_BACKPORT}
+    linux-image-generic-lts-${UBUNTU_BACKPORT}
+    linux-headers-generic-lts-${UBUNTU_BACKPORT}
+)
+
+for p in ${KERNEL_PACKAGES[@]}; do
+    apt-get -y --force-yes install $p
+    apt-mark manual $p
+done
 
 apt-get -y --force-yes --no-install-recommends install linux-headers-$(uname -r)
 
@@ -195,6 +205,12 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
     NAME_SERVERS=()
 fi
 
+if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
+    NAME_SERVERS+=( $(route -n | \
+        egrep 'UG[ \t]' | \
+            awk '{ print $2 }') )
+fi
+
 cat <<EOF | sed -e '/^$/d' | tee /etc/resolvconf/resolv.conf.d/tail
 $(for s in ${NAME_SERVERS[@]}; do
     echo "nameserver $s"
@@ -237,6 +253,10 @@ datasource_list: [ NoCloud, Ec2, None ]
 EOF
 
     dpkg-reconfigure cloud-init
+fi
+
+if [[ -d /etc/dhcp ]]; then
+    ln -sf /etc/dhcp /etc/dhcp3
 fi
 
 # Make sure that /srv exists.

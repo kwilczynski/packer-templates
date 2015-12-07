@@ -4,7 +4,8 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-MAJOR_VERSION=$(lsb_release -r | cut -f 2 | cut -d . -f 1)
+# Get the major release version only.
+readonly UBUNTU_MAJOR_VERSION=$(lsb_release -r | awk '{ print $2 }' | cut -d . -f 1)
 
 sed -i -e \
     's/^\(.*env_keep = \"\)/\1PATH /' \
@@ -14,8 +15,8 @@ sed -i -e \
     's/^Defaults.*requiretty/Defaults\t!requiretty/' \
     /etc/sudoers
 
-if [[ -n $MAJOR_VERSION ]]; then
-    if (( $MAJOR_VERSION > 12 )); then
+if [[ -n $UBUNTU_MAJOR_VERSION ]]; then
+    if (( $UBUNTU_MAJOR_VERSION > 12 )); then
         sed -i -e \
             '/Defaults\s\+env_reset/a Defaults\texempt_group=sudo' \
             /etc/sudoers
@@ -36,7 +37,7 @@ fi
 
 if ! grep -q 'env_keep' /etc/sudoers &>/dev/null; then
     sed -i -e \
-        '/Defaults\s\+env_reset/a Defaults\tenv_keep = "PATH SSH_AGENT_PID SSH_AUTH_SOCK"' \
+        '/Defaults\s\+env_reset/a Defaults\tenv_keep = "PATH HOME SSH_AGENT_PID SSH_AUTH_SOCK"' \
         /etc/sudoers
 fi
 

@@ -35,4 +35,8 @@ sed -i -e \
     '/.*restrict -6.*$/d;/.*restrict ::1$/d;1a\\ntinker panic 0' \
     /etc/ntp.conf
 
+sed -i -e \
+    '/server.*\.ubuntu\.pool\.ntp\.org/ s/ubuntu\.//' \
+    /etc/ntp.conf
+
 update-alternatives --set editor /usr/bin/vim.basic
