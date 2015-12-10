@@ -53,7 +53,7 @@ PACKAGES_TO_PURGE=(
 )
 
 if [[ $AMAZON_EC2 == 'no' ]]; then
-    PACKAGES_TO_PURGE+=( parted kpartx ^ruby* ^libruby* )
+    PACKAGES_TO_PURGE+=( parted kpartx ^ruby* ^libruby* unzip )
 fi
 
 for p in ${PACKAGES_TO_PURGE[@]}; do

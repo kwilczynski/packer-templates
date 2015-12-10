@@ -79,6 +79,18 @@ Acquire
         Max-Age "86400";
         No-store "0";
     };
+
+    Languages "none";
+
+    GzipIndexes "1";
+    CompressionTypes
+    {
+        Order
+        {
+            "gz";
+        };
+    };
+
 };
 EOF
 
@@ -91,6 +103,11 @@ APT
     Install-Suggests "0";
     Install-Recommends "0";
     Clean-Installed "0";
+
+    AutoRemove
+    {
+        SuggestsImportant "0";
+    };
 
     Get
     {
