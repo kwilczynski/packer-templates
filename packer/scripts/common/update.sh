@@ -179,9 +179,9 @@ KERNEL_PACKAGES=(
     linux-headers-generic-lts-${UBUNTU_BACKPORT}
 )
 
-for p in ${KERNEL_PACKAGES[@]}; do
-    apt-get -y --force-yes install $p
-    apt-mark manual $p
+for package in "${KERNEL_PACKAGES[@]}"; do
+    apt-get -y --force-yes install $package
+    apt-mark manual $package
 done
 
 apt-get -y --force-yes --no-install-recommends install linux-headers-$(uname -r)
@@ -240,8 +240,8 @@ if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
 fi
 
 cat <<EOF | sed -e '/^$/d' | tee /etc/resolvconf/resolv.conf.d/tail
-$(for s in ${NAME_SERVERS[@]}; do
-    echo "nameserver $s"
+$(for server in "${NAME_SERVERS[@]}"; do
+    echo "nameserver $server"
 done)
 options timeout:2 attempts:1 rotate single-request-reopen
 EOF
@@ -292,10 +292,10 @@ if dpkg -s ntpdate &>/dev/null; then
 
     pushd /etc/network/if-up.d &>/dev/null
 
-    for o in '--dry-run -s -i' '-i'; do
+    for option in '--dry-run -s -i' '-i'; do
         # Note: This is expected to fail to apply cleanly on a sufficiently
         # up-to-date version the ntpdate package.
-        if ! patch -l -t -p0 $o ${COMMON_FILES}/${PATCH_FILE}; then
+        if ! patch -l -t -p0 $option ${COMMON_FILES}/${PATCH_FILE}; then
             break
         fi
     done

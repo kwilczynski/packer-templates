@@ -69,7 +69,13 @@ export UCF_FORCE_CONFFNEW=1
 ucf --purge /var/run/grub/menu.lst
 
 update-initramfs -u -k all
-update-grub -y
+
+UPDATE_GRUB_OPTION=''
+if update-grub --help | grep -qF -- '-y'; then
+    UPDATE_GRUB_OPTION+='-y'
+fi
+
+update-grub $UPDATE_GRUB_OPTION
 
 if [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     # Select correct root device. We should still

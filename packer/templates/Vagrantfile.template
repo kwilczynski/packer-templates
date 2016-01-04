@@ -5,6 +5,10 @@ Vagrant.configure('2') do |config|
     config.vm.box_check_update = true
   end
 
+  if config.vm.respond_to? :use_linked_clone
+    config.use_linked_clone = true
+  end
+
   config.vm.provider :virtualbox do |vm, override|
     vm.customize [ 'modifyvm', :id,
       '--chipset', 'ich9',

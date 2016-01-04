@@ -44,9 +44,9 @@ else
     PACKAGES+=( lxc-docker )
 fi
 
-for p in ${PACKAGES[@]}; do
-    apt-get -y --force-yes install $p
-    apt-mark manual $p
+for package in "${PACKAGES[@]}"; do
+    apt-get -y --force-yes install $package
+    apt-mark manual $package
 done
 
 service docker stop || true
@@ -55,9 +55,9 @@ if ! getent group docker &>/dev/null; then
     groupadd --system docker
 fi
 
-for u in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
-    if getent passwd $u &>/dev/null; then
-        usermod -aG docker $u
+for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
+    if getent passwd $user &>/dev/null; then
+        usermod -aG docker $user
     fi
 done
 
@@ -161,13 +161,13 @@ grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
 
 # This would normally be on a separate volume,
 # and most likely formatted to use "btrfs".
-for d in /srv/docker /var/lib/docker; do
-  [[ -d $d ]] || mkdir -p $d
+for directory in /srv/docker /var/lib/docker; do
+  [[ -d $directory ]] || mkdir -p $directory
 
-  rm -rf ${d}/*
+  rm -rf ${directory}/*
 
-  chown root:root $d
-  chmod 755 $d
+  chown root:root $directory
+  chmod 755 $directory
 done
 
 # A bind-mount for the Docker root directory.

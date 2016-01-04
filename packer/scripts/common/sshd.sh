@@ -31,6 +31,6 @@ for v in "${SSH_SETTINGS[@]}"; do
     sed -i -e "s/^#\?${SETTING[0]}.*/${v}/" \
         /etc/ssh/sshd_config
 
-    egrep -q "$v" /etc/ssh/sshd_config &> /dev/null || \
+    grep -qF "$v" /etc/ssh/sshd_config &> /dev/null || \
         echo "$v" | tee -a /etc/ssh/sshd_config
 done

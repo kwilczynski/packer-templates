@@ -28,8 +28,17 @@ printf "\n"
 find /tmp /var/tmp
 printf "\n"
 
-if [[ -f /var/log/syslog ]]; then
-    tail -100 /var/log/syslog
+FILES=( syslog messages )
+for f in ${FILES[@]}; do
+  if [[ -f /var/log/${f} ]]; then
+    tail -100 /var/log/${f}
+  fi
+done
+
+printf "\n"
+
+if [[ -f /var/log/secure ]]; then
+  tail -100 /var/log/secure
 fi
 
 sleep 60
