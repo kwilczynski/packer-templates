@@ -1,5 +1,5 @@
 [iw]\(american\|british\)
-^\(cpp\|gcc\)-doc
+^\(cpp\|gcc\|libssl\)-doc
 ^apport*
 ^avahi-*
 ^command-not-found*
