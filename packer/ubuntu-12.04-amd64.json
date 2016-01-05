@@ -204,7 +204,7 @@
       "region": "{{user `region`}}",
       "vpc_id": "{{user `vpc_id`}}",
       "subnet_id": "{{user `subnet_id`}}",
-      "s3_bucket": "{{user `s3_bucket`}}/{{user `name`}}-{{timestamp}}",
+      "s3_bucket": "{{if eq (user `s3_bucket`) `` }}{{user `s3_bucket`}}{{else}}{{end}}/{{user `name`}}-{{timestamp}}",
       "instance_type": "{{user `instance_type`}}",
       "source_ami": "{{user `source_ami`}}",
       "ami_virtualization_type": "hvm",
