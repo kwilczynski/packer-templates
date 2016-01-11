@@ -29,9 +29,9 @@ find /tmp /var/tmp
 printf "\n"
 
 FILES=( syslog messages )
-for f in ${FILES[@]}; do
-  if [[ -f /var/log/${f} ]]; then
-    tail -100 /var/log/${f}
+for file in ${FILES[@]}; do
+  if [[ -f /var/log/${file} ]]; then
+    tail -100 /var/log/${file}
   fi
 done
 

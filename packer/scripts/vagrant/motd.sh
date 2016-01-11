@@ -23,7 +23,7 @@ BUILDER_TYPE="${PACKER_BUILDER_TYPE:-"UNKNOWN"}"
 VERSION="${PACKER_BUILD_VERSION:-"DEVELOPMENT"}"
 EOF
 
-chown root:root /etc/os-release-vagrant
+chown root: /etc/os-release-vagrant
 chmod 644 /etc/os-release-vagrant
 
 cat <<'EOF' | tee /etc/update-motd.d/10-vagrant
@@ -54,5 +54,5 @@ printf "%*s\n%*s\n" \
 exit 0
 EOF
 
-chown root:root /etc/update-motd.d/10-vagrant
+chown root: /etc/update-motd.d/10-vagrant
 chmod 755 /etc/update-motd.d/10-vagrant

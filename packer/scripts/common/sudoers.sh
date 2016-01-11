@@ -35,25 +35,25 @@ if [[ -n $UBUNTU_MAJOR_VERSION ]]; then
     fi
 fi
 
-if ! grep -q 'env_keep' /etc/sudoers &>/dev/null; then
+if ! grep -q 'env_keep' /etc/sudoers; then
     sed -i -e \
         '/Defaults\s\+env_reset/a Defaults\tenv_keep = "PATH HOME SSH_AGENT_PID SSH_AUTH_SOCK"' \
         /etc/sudoers
 fi
 
-if ! grep -q 'requiretty' /etc/sudoers &>/dev/null; then
+if ! grep -q 'requiretty' /etc/sudoers; then
     sed -i -e \
         '/Defaults\s\+env_reset/i Defaults\t!requiretty,!tty_tickets' \
         /etc/sudoers
 fi
 
-chown root:root /etc/sudoers
-chmod 0440 /etc/sudoers
+chown root: /etc/sudoers
+chmod 440 /etc/sudoers
 
-for u in root ubuntu; do
-    if getent passwd $u &>/dev/null; then
-        echo "${u}:$(date | md5sum)" | chpasswd
-        passwd -l $u
+for user in root ubuntu; do
+    if getent passwd $user &>/dev/null; then
+        echo "${user}:$(date | md5sum)" | chpasswd
+        passwd -l $user
     fi
 done
 
@@ -63,5 +63,5 @@ vc/1
 tty1
 EOF
 
-chown root:root /etc/securetty
-chmod 0440 /etc/securetty
+chown root: /etc/securetty
+chmod 440 /etc/securetty

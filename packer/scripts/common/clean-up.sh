@@ -24,22 +24,23 @@ logrotate -f /etc/logrotate.conf || true
 # Remove everything (configuration files, etc.) left after
 # packages were uninstalled (often unused files are left on
 # the file system).
-dpkg -l | egrep '^rc' | awk '{ print $2 }' | \
+dpkg -l | grep '^rc' | awk '{ print $2 }' | \
     xargs apt-get -y --force-yes purge
 
-dpkg -l | awk '{ print $2 }' | egrep 'linux-(source|headers)' | \
+# Remove not really needed Kernel source packages.
+dpkg -l | awk '{ print $2 }' | grep -E 'linux-(source|headers)-[0-9]+' | \
     grep -v "$(uname -r | sed -e 's/\-generic//;s/\-lowlatency//')" | \
     xargs apt-get -y --force-yes purge
 
 # Remove old Kernel images that are not the current one.
-dpkg -l | awk '{ print $2 }' | grep 'linux-image-.*-generic' | \
+dpkg -l | awk '{ print $2 }' | grep -E 'linux-image-.*-generic' | \
     grep -v $(uname -r) | xargs apt-get -y --force-yes purge
 
-PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge-list 2>/dev/null) )
+# Remove old Kernel images that are not the current one.
+dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | grep -vE '(libc|gcc)' | \
+    xargs apt-get -y --force-yes purge
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
-    PACKAGES_TO_PURGE+=( cpp g++ gcc )
-fi
+PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge-list 2>/dev/null) )
 
 # Keep these packages when building an Instance Store type image (needed by
 # the Amazon EC2 AMI Tools), and remove otherwise.
@@ -81,7 +82,9 @@ update-rc.d -f ondemand disable
 
 rm -f /core*
 
-rm -f /boot/grub/menu.lst_*
+rm -f /boot/grub/menu.lst_* \
+      /boot/*.old*
+
 rm -f /etc/network/interfaces.old
 
 rm -f /etc/apt/apt.conf.d/99dpkg \
@@ -125,7 +128,7 @@ rm -rf /etc/lvm/cache/.cache
 
 # Clean if there are any Python software installed there.
 if ls /opt/*/share &>/dev/null; then
-  find /opt/*/share -type d -name 'man' -exec rm -rf '{}' \;
+  find /opt/*/share -type d -name 'man' -o -name 'doc' -exec rm -rf '{}' \;
 fi
 
 if [[ $AMAZON_EC2 == 'no' ]]; then
@@ -180,7 +183,7 @@ rm -f /etc/udev/rules.d/{z25,70}-persistent-net.rules \
 
 mkdir /etc/udev/rules.d/{z25,70}-persistent-net.rules
 
-chown root:root /etc/udev/rules.d/{z25,70}-persistent-net.rules
+chown root: /etc/udev/rules.d/{z25,70}-persistent-net.rules
 chmod 755 /etc/udev/rules.d/{z25,70}-persistent-net.rules
 
 rm -rf /dev/.udev \
@@ -220,12 +223,12 @@ fi
 mkdir -p /var/lib/apt/periodic \
          /var/lib/apt/{lists,archives}/partial
 
-chown -R root:root /var/lib/apt
+chown -R root: /var/lib/apt
 chmod -R 755 /var/lib/apt
 
 apt-cache gencaches
 
 touch /var/log/{lastlog,wtmp,btmp}
 
-chown root:root /var/log/{lastlog,wtmp,btmp}
+chown root: /var/log/{lastlog,wtmp,btmp}
 chmod 644 /var/log/{lastlog,wtmp,btmp}

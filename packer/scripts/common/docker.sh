@@ -15,7 +15,7 @@ cat <<'EOF' | tee /etc/apt/sources.list.d/docker.list
 deb https://get.docker.com/ubuntu docker main
 EOF
 
-chown root:root /etc/apt/sources.list.d/docker.list
+chown root: /etc/apt/sources.list.d/docker.list
 chmod 644 /etc/apt/sources.list.d/docker.list
 
 if [[ ! -f ${DOCKER_FILES}/docker.key ]]; then
@@ -30,13 +30,7 @@ apt-get -y --force-yes update \
     -o Dir::Etc::SourceList='sources.list.d/docker.list' \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
-PACKAGES=(
-    python-dev
-    libyaml-0-2 libyaml-dev
-    pciutils procps
-    btrfs-tools
-    git
-)
+PACKAGES=( pciutils procps btrfs-tools git )
 
 if [[ -n $DOCKER_VERSION ]]; then
     PACKAGES+=( lxc-docker-${DOCKER_VERSION} )
@@ -46,7 +40,6 @@ fi
 
 for package in "${PACKAGES[@]}"; do
     apt-get -y --force-yes install $package
-    apt-mark manual $package
 done
 
 service docker stop || true
@@ -61,7 +54,7 @@ for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
     fi
 done
 
-chown root:root /etc/bash_completion.d/docker
+chown root: /etc/bash_completion.d/docker
 chmod 644 /etc/bash_completion.d/docker
 
 # Disable IPv6 in Docker.
@@ -77,7 +70,7 @@ fi
 cp -f ${DOCKER_FILES}/docker-compose \
       /etc/bash_completion.d/docker-compose
 
-chown root:root /etc/bash_completion.d/docker-compose
+chown root: /etc/bash_completion.d/docker-compose
 chmod 644 /etc/bash_completion.d/docker-compose
 
 # We can install the docker-compose pip, but it has to be done
@@ -92,6 +85,9 @@ pushd /opt/docker-compose &>/dev/null
 # This is needed, as virtualenv by default will install
 # some really old version (e.g. 12.0.x, etc.), sadly.
 pip install --upgrade setuptools
+
+# Resolve the "InsecurePlatformWarning" warning.
+pip install --upgrade ndg-httpsclient
 
 # The "--install-scripts" option is to make sure that binary
 # will be placed in the system-wide directory, rather than
@@ -124,12 +120,13 @@ hash -r
 KERNEL_OPTIONS=( swapaccount=1 cgroup_enable=memory )
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 
-if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
+# Support both grub and grub2 style configuration.
+if grub-install --version | egrep -q '(1.9|2.0).+'; then
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
         "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/g" \
         /etc/default/grub | \
-            egrep '^GRUB_CMDLINE_LINUX=' | \
+            grep '^GRUB_CMDLINE_LINUX=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX=\"\(.*\)\"/\1/' | \
                     tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
@@ -139,14 +136,14 @@ if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
 else
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        "s/#.*defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
         /boot/grub/menu.lst | \
-            egrep '#.defoptions=' | \
+            grep -E '#.*defoptions=' | \
                 sed -e 's/.*defoptions=//' | \
                     tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/#.defoptions=.*/# defoptions=${OPTIONS}/" \
+        "s/#.*defoptions=.*/# defoptions=${OPTIONS}/" \
         /boot/grub/menu.lst
 fi
 
@@ -166,7 +163,7 @@ for directory in /srv/docker /var/lib/docker; do
 
   rm -rf ${directory}/*
 
-  chown root:root $directory
+  chown root: $directory
   chmod 755 $directory
 done
 

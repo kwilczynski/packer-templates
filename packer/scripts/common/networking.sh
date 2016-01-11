@@ -33,8 +33,7 @@ if ! dpkg -s ethtool &>/dev/null; then
         apt-get -y --force-yes update
     fi
 
-    apt-get -y --force-yes --no-install-recommends install ethtool
-    apt-mark manual ethtool
+    apt-get -y --force-yes install ethtool
 fi
 
 if [[ -d /etc/network/interfaces.d ]]; then
@@ -65,7 +64,7 @@ cat <<'EOF' | tee -a /etc/sysfs.conf
 class/net/eth0/queues/rx-0/rps_flow_cnt = 32768
 EOF
 
-chown root:root /etc/sysfs.conf
+chown root: /etc/sysfs.conf
 chmod 644 /etc/sysfs.conf
 
 service sysfsutils restart

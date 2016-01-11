@@ -31,7 +31,7 @@ APT
 };
 EOF
 
-chown root:root /etc/apt/apt.conf.d/00trustcdrom
+chown root: /etc/apt/apt.conf.d/00trustcdrom
 chmod 644 /etc/apt/apt.conf.d/00trustcdrom
 
 cat <<'EOF' | tee /etc/apt/apt.conf.d/15update-stamp
@@ -47,7 +47,7 @@ APT
 };
 EOF
 
-chown root:root /etc/apt/apt.conf.d/15update-stamp
+chown root: /etc/apt/apt.conf.d/15update-stamp
 chmod 644 /etc/apt/apt.conf.d/15update-stamp
 
 # Any Amazon EC2 instance can use local packages mirror, but quite often
@@ -90,11 +90,10 @@ Acquire
             "gz";
         };
     };
-
 };
 EOF
 
-chown root:root /etc/apt/apt.conf.d/99apt-acquire
+chown root: /etc/apt/apt.conf.d/99apt-acquire
 chmod 644 /etc/apt/apt.conf.d/99apt-acquire
 
 cat <<'EOF' | tee /etc/apt/apt.conf.d/99apt-get
@@ -116,7 +115,7 @@ APT
 };
 EOF
 
-chown root:root /etc/apt/apt.conf.d/99apt-get
+chown root: /etc/apt/apt.conf.d/99apt-get
 chmod 644 /etc/apt/apt.conf.d/99apt-get
 
 cat <<'EOF' | tee /etc/apt/apt.conf.d/99dpkg
@@ -130,7 +129,7 @@ DPkg
 };
 EOF
 
-chown root:root /etc/apt/apt.conf.d/99dpkg
+chown root: /etc/apt/apt.conf.d/99dpkg
 chmod 644 /etc/apt/apt.conf.d/99dpkg
 
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
@@ -146,7 +145,7 @@ if [[ $AMAZON_EC2 == 'no' ]]; then
     eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" | \
         tee /etc/apt/sources.list
 
-    chown root:root /etc/apt/sources.list
+    chown root: /etc/apt/sources.list
     chmod 644 /etc/apt/sources.list
 
     rm -f /var/tmp/vagrant/sources.list.template
@@ -168,7 +167,7 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get -y --force-yes install libreadline-dev dpkg
 fi
 
-UBUNTU_BACKPORT='vivid'
+UBUNTU_BACKPORT='wily'
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
     UBUNTU_BACKPORT='trusty'
 fi
@@ -181,16 +180,15 @@ KERNEL_PACKAGES=(
 
 for package in "${KERNEL_PACKAGES[@]}"; do
     apt-get -y --force-yes install $package
-    apt-mark manual $package
 done
 
-apt-get -y --force-yes --no-install-recommends install linux-headers-$(uname -r)
+apt-get -y --force-yes install linux-headers-$(uname -r)
 
 cat <<'EOF' | tee /etc/timezone
 Etc/UTC
 EOF
 
-chown root:root /etc/timezone
+chown root: /etc/timezone
 chmod 644 /etc/timezone
 
 dpkg-reconfigure tzdata
@@ -204,7 +202,7 @@ en_US.ISO-8859-1 ISO-8859-1
 en_US.ISO-8859-15 ISO-8859-15
 EOF
 
-chown root:root /var/lib/locales/supported.d/en
+chown root: /var/lib/locales/supported.d/en
 chmod 644 /var/lib/locales/supported.d/en
 
 dpkg-reconfigure locales
@@ -217,7 +215,7 @@ vm.swappiness = 10
 vm.vfs_cache_pressure = 50
 EOF
 
-chown root:root /etc/sysctl.d/10-virtual-memory.conf
+chown root: /etc/sysctl.d/10-virtual-memory.conf
 chmod 644 /etc/sysctl.d/10-virtual-memory.conf
 
 service procps start
@@ -225,7 +223,7 @@ service procps start
 rm -f /etc/resolvconf/resolv.conf.d/head
 touch /etc/resolvconf/resolv.conf.d/head
 
-chown root:root /etc/resolvconf/resolv.conf.d/head
+chown root: /etc/resolvconf/resolv.conf.d/head
 chmod 644 /etc/resolvconf/resolv.conf.d/head
 
 NAME_SERVERS=( 8.8.8.8 8.8.4.4 )
@@ -235,7 +233,7 @@ fi
 
 if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
     NAME_SERVERS+=( $(route -n | \
-        egrep 'UG[ \t]' | \
+        grep -E 'UG[ \t]' | \
             awk '{ print $2 }') )
 fi
 
@@ -246,13 +244,12 @@ done)
 options timeout:2 attempts:1 rotate single-request-reopen
 EOF
 
-chown root:root /etc/resolvconf/resolv.conf.d/tail
+chown root: /etc/resolvconf/resolv.conf.d/tail
 chmod 644 /etc/resolvconf/resolv.conf.d/tail
 
 resolvconf -u
 
 apt-get -y --force-yes install libnss-myhostname
-apt-mark manual libnss-myhostname
 
 cat <<'EOF' | tee /etc/nsswitch.conf
 passwd:         compat
@@ -270,13 +267,13 @@ rpc:            files db
 netgroup:       nis
 EOF
 
-chown root:root /etc/nsswitch.conf
+chown root: /etc/nsswitch.conf
 chmod 644 /etc/nsswitch.conf
 
 update-ca-certificates -v
 
 if [[ $AMAZON_EC2 == 'yes' ]]; then
-    cat <<'EOF' | tee /etc/cloud/cloud.cfg.d/90_dpkg.cfg
+    cat <<'EOF' | tee /etc/cloud/cloud.cfg.d/90_overrides.cfg
 datasource_list: [ NoCloud, Ec2, None ]
 EOF
 
@@ -309,5 +306,15 @@ fi
 
 # Make sure that /srv exists.
 [[ -d /srv ]] || mkdir -p /srv
-chown root:root /srv
+chown root: /srv
 chmod 755 /srv
+
+if [[ $AMAZON_EC2 == 'yes' ]]; then
+    # Disable Xen framebuffer driver causing 30 seconds boot delay.
+cat <<'EOF' | tee /etc/modprobe.d/blacklist-xen.conf
+blacklist xen_fbfront
+EOF
+
+    chown root: /etc/modprobe.d/blacklist-xen.conf
+    chmod 644 /etc/modprobe.d/blacklist-xen.conf
+fi

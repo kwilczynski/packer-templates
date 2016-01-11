@@ -72,16 +72,16 @@ do-not-reply:   /dev/null
 MAILER-DAEMON:  postmaster
 EOF
 
-chown root:root /etc/aliases
+chown root: /etc/aliases
 chmod 644 /etc/aliases
 
 echo $FQDN | tee \
-    /etc/mailname
+     /etc/mailname
 
-chown root:root /etc/mailname
+chown root: /etc/mailname
 chmod 644 /etc/mailname
 
-apt-get -y --force-yes --no-install-recommends install postfix
+apt-get -y --force-yes install postfix
 
 service postfix stop
 dpkg-reconfigure postfix
@@ -90,7 +90,7 @@ sed -i -e \
     's/.*inet_protocols.+/inet_protocols = ipv4/g' \
     /etc/postfix/main.cf
 
-if ! grep -q 'inet_protocols' /etc/postfix/main.cf &>/dev/null; then
+if ! grep -q 'inet_protocols' /etc/postfix/main.cf; then
     cat <<'EOF' | tee -a /etc/postfix/main.cf
 inet_protocols = ipv4
 EOF

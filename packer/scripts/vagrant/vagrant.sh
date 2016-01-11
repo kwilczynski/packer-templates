@@ -15,8 +15,8 @@ Defaults:vagrant env_keep += "SSH_AGENT_PID SSH_AUTH_SOCK"
 vagrant ALL=(ALL) NOPASSWD: ALL
 EOF
 
-chown -R root:root /etc/sudoers.d
-chmod 0440 /etc/sudoers.d/vagrant
+chown -R root: /etc/sudoers.d
+chmod 440 /etc/sudoers.d/vagrant
 
 mkdir -p /home/vagrant/.ssh
 
@@ -25,9 +25,10 @@ if [[ ! -f ${VAGRANT_FILES}/vagrant.pub ]]; then
         https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub
 fi
 
-cp -f ${VAGRANT_FILES}/vagrant.pub /home/vagrant/.ssh/authorized_keys
+cp -f ${VAGRANT_FILES}/vagrant.pub \
+      /home/vagrant/.ssh/authorized_keys
 
-chown -R vagrant:vagrant /home/vagrant/.ssh
+chown -R vagrant: /home/vagrant/.ssh
 chmod 700 /home/vagrant/.ssh
 chmod 600 /home/vagrant/.ssh/*
 

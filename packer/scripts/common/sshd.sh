@@ -25,12 +25,13 @@ fi
 rm -f /etc/ssh/ssh_host_*
 ssh-keygen -A
 
-for v in "${SSH_SETTINGS[@]}"; do
-    SETTING=( $v )
+for value in "${SSH_SETTINGS[@]}"; do
+    SETTING=( $value )
 
-    sed -i -e "s/^#\?${SETTING[0]}.*/${v}/" \
+    sed -i -e \
+        "s/^#\?${SETTING[0]}.*/${value}/" \
         /etc/ssh/sshd_config
 
-    grep -qF "$v" /etc/ssh/sshd_config &> /dev/null || \
-        echo "$v" | tee -a /etc/ssh/sshd_config
+    grep -qF "$value" /etc/ssh/sshd_config || \
+        echo "$value" | tee -a /etc/ssh/sshd_config
 done

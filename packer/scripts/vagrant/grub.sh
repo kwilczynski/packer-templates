@@ -5,7 +5,7 @@ set -e
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 KERNEL_OPTIONS=(
-    quiet divider=10
+    quiet divider=10 console=tty1
     tsc=reliable elevator=noop
     net.ifnames=0 biosdevname=0
 )
@@ -39,6 +39,17 @@ OPTIONS=$(sed -e \
 sed -i -e \
     "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/g" \
     /etc/default/grub
+
+# Add include directory should it not exist.
+[[ -d /etc/default/grub.d ]] || mkdir -p /etc/default/grub.d
+
+# Disable the GRUB_RECORDFAIL_TIMEOUT.
+cat <<'EOF' | tee /etc/default/grub.d/99-disable-recordfail.cfg
+GRUB_RECORDFAIL_TIMEOUT=0
+EOF
+
+# Remove not needed legacy grub configuration file.
+rm -f /boot/grub/menu.lst*
 
 # Not really needed.
 rm -f /boot/grub/device.map

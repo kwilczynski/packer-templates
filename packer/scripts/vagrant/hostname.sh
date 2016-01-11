@@ -13,14 +13,14 @@ cat <<EOF | tee /etc/hosts
 ${IP_ADDRESS} ${HOSTNAME}.localdomain ${HOSTNAME} ubuntu
 EOF
 
-chown root:root /etc/hosts
+chown root: /etc/hosts
 chmod 644 /etc/hosts
 
 echo $HOSTNAME | tee \
     /proc/sys/kernel/hostname \
     /etc/hostname
 
-chown root:root /etc/hostname
+chown root: /etc/hostname
 chmod 644 /etc/hostname
 
 echo 'localdomain' | tee \

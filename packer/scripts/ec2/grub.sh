@@ -5,53 +5,104 @@ set -e
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 KERNEL_OPTIONS=(
-    quiet divider=10 tsc=reliable
-    elevator=noop net.ifnames=0
-    biosdevname=0 console=ttyS0
-    xen_emul_unplug=unnecessary
+    quiet divider=10 tsc=reliable elevator=noop
+    net.ifnames=0 biosdevname=0 console=tty1
+    console=ttyS0 xen_emul_unplug=unnecessary
 )
 
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 
-sed -i -e \
-    "s/^default\(\s\).*/default\10/" \
-    /boot/grub/menu.lst
+# Support both grub and grub2 style configuration.
+if grub-install --version | egrep -q '(1.9|2.0).+'; then
+    sed -i -e \
+        's/GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=0/g' \
+        /etc/default/grub
 
-sed -i -e \
-    "s/^timeout\(\s\).*/timeout\10/" \
-    /boot/grub/menu.lst
+    sed -i -e \
+        's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/g' \
+        /etc/default/grub
 
-sed -i -e \
-    "s/#.alternative=.*/# alternative=false/" \
-    /boot/grub/menu.lst
+    sed -i -e \
+        's/.*GRUB_DISABLE_RECOVERY=.*/GRUB_DISABLE_RECOVERY=true/g' \
+        /etc/default/grub
 
-sed -i -e \
-    "s/#.groot=.*/# groot=(hd0,0)/" \
-    /boot/grub/menu.lst
+    sed -i -e \
+        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        /etc/default/grub
 
-sed -i -e \
-    "s/#.memtest86=.*/# memtest86=false/" \
-    /boot/grub/menu.lst
+    # Remove any repeated (de-duplicate) Kernel options.
+    OPTIONS=$(sed -e \
+        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        /etc/default/grub | \
+            grep '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
+                sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
+                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
-sed -i -e \
-    "s/#.indomU=.*/# indomU=detect/" \
-    /boot/grub/menu.lst
+    sed -i -e \
+        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/g" \
+        /etc/default/grub
 
-sed -i -e \
-    's/console=hvc0/console=ttyS0/g' \
-    /boot/grub/menu.lst
+    # Remove not needed settings override.
+    rm -f /etc/default/grub.d/50-cloudimg-settings.cfg
 
-# Remove any repeated (de-duplicate) Kernel options.
-OPTIONS=$(sed -e \
-    "s/#.defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
-    /boot/grub/menu.lst | \
-        egrep '#.defoptions=' | \
-            sed -e 's/.*defoptions=//' | \
-                tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+    # Add include directory should it not exist.
+    [[ -d /etc/default/grub.d ]] || mkdir -p /etc/default/grub.d
 
-sed -i -e \
-    "s/#.defoptions=.*/# defoptions=${OPTIONS}/" \
-    /boot/grub/menu.lst
+    # Disable the GRUB_RECORDFAIL_TIMEOUT.
+    cat <<'EOF' | tee /etc/default/grub.d/99-disable-recordfail.cfg
+GRUB_RECORDFAIL_TIMEOUT=0
+EOF
+
+    # Remove not needed legacy grub configuration file.
+    rm -f /boot/grub/menu.lst*
+else
+    sed -i -e \
+        "s/^default\(\s\).*/default\10/" \
+        /boot/grub/menu.lst
+
+    sed -i -e \
+        "s/^timeout\(\s\).*/timeout\10/" \
+        /boot/grub/menu.lst
+
+    sed -i -e \
+        "s/#.alternative=.*/# alternative=false/" \
+        /boot/grub/menu.lst
+
+    sed -i -e \
+        "s/#.groot=.*/# groot=(hd0,0)/" \
+        /boot/grub/menu.lst
+
+    sed -i -e \
+        "s/#.memtest86=.*/# memtest86=false/" \
+        /boot/grub/menu.lst
+
+    sed -i -e \
+        "s/#.indomU=.*/# indomU=detect/" \
+        /boot/grub/menu.lst
+
+    sed -i -e \
+        's/console=hvc0/console=ttyS0/g' \
+        /boot/grub/menu.lst
+
+    # Remove any repeated (de-duplicate) Kernel options.
+    OPTIONS=$(sed -e \
+        "s/#.*defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        /boot/grub/menu.lst | \
+            grep -E '#.*defoptions=' | \
+                sed -e 's/.*defoptions=//' | \
+                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+
+    sed -i -e \
+        "s/#.*defoptions=.*/# defoptions=${OPTIONS}/" \
+        /boot/grub/menu.lst
+
+    unset UCF_FORCE_CONFFOLD
+    unset UCF_FORCE_CONFFNEW
+
+    export UCF_FORCE_CONFFNEW=1
+
+    ucf --purge /var/run/grub/menu.lst
+fi
 
 # We don't care about UEFI firmware in case of legacy grub.
 sed -i -e \
@@ -61,12 +112,8 @@ sed -i -e \
 sed -i -e '/^$/d' \
     /etc/fstab
 
-unset UCF_FORCE_CONFFOLD
-unset UCF_FORCE_CONFFNEW
-
-export UCF_FORCE_CONFFNEW=1
-
-ucf --purge /var/run/grub/menu.lst
+# Not really needed.
+rm -f /boot/grub/device.map
 
 update-initramfs -u -k all
 
@@ -90,5 +137,3 @@ if [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     grub-install --no-floppy $ROOT_DEVICE
 fi
 
-# Not really needed.
-rm -f /boot/grub/device.map

@@ -17,13 +17,14 @@ net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
 EOF
 
-chown root:root /etc/modprobe.d/blacklist-ipv6.conf \
-                /etc/sysctl.d/10-disable-ipv6.conf
+chown root: /etc/modprobe.d/blacklist-ipv6.conf \
+            /etc/sysctl.d/10-disable-ipv6.conf
 
 chmod 644 /etc/modprobe.d/blacklist-ipv6.conf \
           /etc/sysctl.d/10-disable-ipv6.conf
 
-if grub-install --version | egrep -q '(1.9|2.0).+' &>/dev/null; then
+# Support both grub and grub2 style configuration.
+if grub-install --version | egrep -q '(1.9|2.0).+'; then
     sed -i -e \
         's/GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 ipv6.disable=1"/g' \
         /etc/default/grub

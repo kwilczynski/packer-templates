@@ -14,6 +14,12 @@ if [[ ! -f $UPDATE_STAMP ]] || \
     apt-get -y --force-yes update
 fi
 
+# Dependencies needed by a lot of Python eggs.
+PACKAGES=( python-dev libffi-dev libssl-dev libyaml-dev )
+for package in "${PACKAGES[@]}"; do
+    apt-get -y --force-yes install $package
+done
+
 apt-get -y --force-yes install python-setuptools
 
 # Remove current and rather old version.
@@ -22,8 +28,8 @@ apt-get -y --force-yes purge python-pip
 easy_install pip
 pip install --upgrade pip
 
-for f in /usr/local/bin/pip*; do
-    ln -sf $f /usr/bin/${f##*/}
+for file in /usr/local/bin/pip*; do
+    ln -sf $file /usr/bin/${file##*/}
 done
 
 # Update look-up table (to get new
@@ -38,8 +44,11 @@ apt-get -y --force-yes purge python-setuptools
 pip install --upgrade setuptools
 pip install --upgrade virtualenv
 
-for f in /usr/local/bin/easy_install*; do
-    ln -sf $f /usr/bin/${f##*/}
+# Resolve the "InsecurePlatformWarning" warning.
+pip install --upgrade ndg-httpsclient
+
+for file in /usr/local/bin/easy_install*; do
+    ln -sf $file /usr/bin/${file##*/}
 done
 
 hash -r

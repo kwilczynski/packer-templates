@@ -7,24 +7,18 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
-apt-get -y --force-yes --no-install-recommends install \
-    ntp \
-    haveged \
-    irqbalance \
-    vim \
-    heirloom-mailx \
-    apt-transport-https \
-    software-properties-common \
-    python-software-properties \
-    wget \
-    curl
+PACKAGES=(
+    ntp haveged irqbalance vim heirloom-mailx
+    apt-transport-https software-properties-common
+    python-software-properties wget curl
+)
 
-apt-mark manual dkms
-apt-mark manual apt-transport-https
-apt-mark manual software-properties-common
-apt-mark manual python-software-properties
+for package in "${PACKAGES[@]}"; do
+    apt-get -y --force-yes install $package
+done
 
-service ntp stop
+service ntp stop || true
+
 sed -i -e \
     "s/.*NTPD_OPTS='\(.*\)'/NTPD_OPTS='\1 -4'/g" \
     /etc/default/ntp

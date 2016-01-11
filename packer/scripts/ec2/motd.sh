@@ -22,7 +22,7 @@ BUILDER_SOURCE_AMI="${PACKER_SOURCE_AMI:-"UNKNOWN"}"
 VERSION="${PACKER_BUILD_VERSION:-"DEVELOPMENT"}"
 EOF
 
-chown root:root /etc/os-release-ec2
+chown root: /etc/os-release-ec2
 chmod 644 /etc/os-release-ec2
 
 cat <<'EOF' | tee /etc/update-motd.d/10-ec2
@@ -54,5 +54,5 @@ printf "%*s\n%*s\n" \
 exit 0
 EOF
 
-chown root:root /etc/update-motd.d/10-ec2
+chown root: /etc/update-motd.d/10-ec2
 chmod 755 /etc/update-motd.d/10-ec2
