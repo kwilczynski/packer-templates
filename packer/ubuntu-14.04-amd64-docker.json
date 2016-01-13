@@ -12,6 +12,8 @@
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
     "awscli_version": "{{env `AWSCLI_VERSION`}}",
     "ec2_ami_tools_version": "{{env `EC2_AMI_TOOLS_VERSION`}}",
+    "aws_cfn_bootstrap_version": "{{env `AWS_CFN_BOOTSTRAP_VERSION`}}",
+    "sriov_driver_version": "{{env `SRIOV_DRIVER_VERSION`}}",
     "account_id": "{{env `AWS_ACCOUNT_ID`}}",
     "access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
@@ -322,6 +324,8 @@
         "AWS_DEFAULT_REGION={{user `region`}}",
         "AWSCLI_VERSION={{user `awscli_version`}}",
         "EC2_AMI_TOOLS_VERSION={{user `ec2_ami_tools_version`}}",
+        "AWS_CFN_BOOTSTRAP_VERSION={{user `aws_cfn_bootstrap_version`}}",
+        "SRIOV_DRIVER_VERSION={{user `sriov_driver_version`}}",
         "DOCKER_VERSION={{user `docker_version`}}",
         "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"

@@ -40,6 +40,7 @@ dpkg -l | awk '{ print $2 }' | grep -E 'linux-image-.*-generic' | \
 dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | grep -vE '(libc|gcc)' | \
     xargs apt-get -y --force-yes purge
 
+# A list of packages to be purged.
 PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge-list 2>/dev/null) )
 
 # Keep these packages when building an Instance Store type image (needed by

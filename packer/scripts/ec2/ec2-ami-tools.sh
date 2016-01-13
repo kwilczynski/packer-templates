@@ -22,11 +22,7 @@ if [[ ! -f ${EC2_FILES}/${EC2_AMI_TOOLS} ]]; then
 fi
 
 # Dependencies needed by the Amazon EC2 AMI Tools.
-PACKAGES=(
-    grub parted
-    kpartx unzip
-    rsync ruby1.9.3
-)
+PACKAGES=( grub parted kpartx unzip rsync ruby1.9.3 )
 
 for package in "${PACKAGES[@]}"; do
     apt-get -y --force-yes install $package

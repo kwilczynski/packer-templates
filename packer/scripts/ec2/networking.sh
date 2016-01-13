@@ -12,17 +12,22 @@ readonly EC2_FILES='/var/tmp/ec2'
 [[ -d $EC2_FILES ]] || mkdir -p $EC2_FILES
 
 # The version 2.16.4 is currently the recommended version.
-INTEL_DRIVER='ixgbevf-2.16.4.tar.gz'
-if [[ ! -f ${EC2_FILES}/${INTEL_DRIVER} ]]; then
-    wget --no-check-certificate -O ${EC2_FILES}/${INTEL_DRIVER} \
-        https://downloadmirror.intel.com/18700/eng/${INTEL_DRIVER}
+SRIOV_DRIVER='ixgbevf-2.16.4.tar.gz'
+if [[ -n $SRIOV_DRIVER_VERSION ]]; then
+    EC2_AMI_TOOLS="ixgbevf-${SRIOV_DRIVER_VERSION}.tar.gz"
+fi
+
+# Extract version number from the file name.
+SRIOV_DRIVER_VERSION=$(echo $SRIOV_DRIVER | sed -e \
+    's/[^0-9.]*\([0-9.]\+\)\.tar\.gz/\1/')
+
+if [[ ! -f ${EC2_FILES}/${SRIOV_DRIVER} ]]; then
+    wget --no-check-certificate -O ${EC2_FILES}/${SRIOV_DRIVER} \
+        "http://sourceforge.net/projects/e1000/files/ixgbevf%20stable/${SRIOV_DRIVER_VERSION}/${SRIOV_DRIVER}"
 fi
 
 # Dependencies needed to compile the Intel network card driver.
-PACKAGES=(
-    build-essential dkms
-    linux-headers-$(uname -r)
-)
+PACKAGES=( build-essential dkms linux-headers-$(uname -r) )
 
 for package in "${PACKAGES[@]}"; do
     apt-get -y --force-yes install $package
@@ -36,16 +41,17 @@ if [[ ! -d /usr/src ]]; then
     chmod 755 /usr/src
 fi
 
-tar -zxf ${EC2_FILES}/${INTEL_DRIVER} -C /usr/src
+tar -zxf ${EC2_FILES}/${SRIOV_DRIVER} -C /usr/src
 
 # Extract directory name from the source code archive name.
-SOURCE_DIRECTORY=/usr/src/${INTEL_DRIVER%%.tar.gz}
+SOURCE_DIRECTORY=/usr/src/$(echo $SRIOV_DRIVER | sed -e 's/\.tar\.gz//')
 
 pushd $SOURCE_DIRECTORY &>/dev/null
 
-cat <<'EOF' | tee ${SOURCE_DIRECTORY}/dkms.conf
+# WARNING: A variable needs to be escaped there!
+cat <<EOF | tee ${SOURCE_DIRECTORY}/dkms.conf
 PACKAGE_NAME="ixgbevf"
-PACKAGE_VERSION="2.16.4"
+PACKAGE_VERSION="${SRIOV_DRIVER_VERSION}"
 
 AUTOINSTALL="yes"
 REMAKE_INITRD="yes"
@@ -56,7 +62,7 @@ DEST_MODULE_LOCATION[0]="/updates"
 DEST_MODULE_NAME[0]="ixgbevf"
 
 CLEAN="make -C src/ clean"
-MAKE="make -C src/ BUILD_KERNEL=${kernelver}"
+MAKE="make -C src/ BUILD_KERNEL=\${kernelver}"
 EOF
 
 popd &> /dev/null
@@ -78,4 +84,4 @@ EOF
 chown root: /etc/modprobe.d/ixgbevf.conf
 chmod 644 /etc/modprobe.d/ixgbevf.conf
 
-rm -f ${EC2_FILES}/${INTEL_DRIVER}
+rm -f ${EC2_FILES}/${SRIOV_DRIVER}

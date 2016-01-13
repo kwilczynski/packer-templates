@@ -30,6 +30,7 @@ apt-get -y --force-yes update \
     -o Dir::Etc::SourceList='sources.list.d/docker.list' \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
+# Dependencies needed by Docker, etc.
 PACKAGES=( pciutils procps btrfs-tools git )
 
 if [[ -n $DOCKER_VERSION ]]; then

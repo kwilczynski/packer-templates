@@ -172,14 +172,13 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     UBUNTU_BACKPORT='trusty'
 fi
 
-KERNEL_PACKAGES=(
-    linux-generic-lts-${UBUNTU_BACKPORT}
-    linux-image-generic-lts-${UBUNTU_BACKPORT}
-    linux-headers-generic-lts-${UBUNTU_BACKPORT}
-)
+# Upgrade to latest available back-ported Kernel version.
+for package in '' 'image' 'headers'; do
+    PACKAGE_NAME=$(echo \
+            "linux-${package}-generic-lts-${UBUNTU_BACKPORT}" | \
+                sed -e 's/\-\+/\-/')
 
-for package in "${KERNEL_PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get -y --force-yes install $PACKAGE_NAME
 done
 
 apt-get -y --force-yes install linux-headers-$(uname -r)

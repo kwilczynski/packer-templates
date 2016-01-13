@@ -7,6 +7,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
+# A list of common packages to be installed.
 PACKAGES=(
     ntp haveged irqbalance vim heirloom-mailx
     apt-transport-https software-properties-common

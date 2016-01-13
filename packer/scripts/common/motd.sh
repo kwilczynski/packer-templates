@@ -9,11 +9,8 @@ export DEBCONF_NONINTERACTIVE_SEEN=true
 
 readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 
-PACKAGES=(
-    python-twisted-core
-    python-configobj
-    landscape-common
-)
+# Dependencies needed by Landscape.
+PACKAGES=( python-twisted-core python-configobj landscape-common )
 
 for package in "${PACKAGES[@]}"; do
     apt-get -y --force-yes install $package
