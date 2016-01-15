@@ -22,6 +22,7 @@
     "subnet_id": "{{env `EC2_SUBNET_ID`}}",
     "s3_bucket": "{{env `S3_BUCKET`}}",
     "instance_type": "m3.medium",
+    "enhanced_networking": "false",
     "source_ami": "{{env `EC2_SOURCE_AMI`}}",
     "headless": "true"
   },
@@ -172,6 +173,7 @@
       "vpc_id": "{{user `vpc_id`}}",
       "subnet_id": "{{user `subnet_id`}}",
       "instance_type": "{{user `instance_type`}}",
+      "enhanced_networking": "{{user `enhanced_networking`}}",
       "source_ami": "{{user `source_ami`}}",
       "ami_virtualization_type": "hvm",
       "associate_public_ip_address": "true",
@@ -208,6 +210,7 @@
       "subnet_id": "{{user `subnet_id`}}",
       "s3_bucket": "{{if eq (user `s3_bucket`) `` }}{{user `s3_bucket`}}{{else}}{{end}}/{{user `name`}}-{{timestamp}}",
       "instance_type": "{{user `instance_type`}}",
+      "enhanced_networking": "{{user `enhanced_networking`}}",
       "source_ami": "{{user `source_ami`}}",
       "ami_virtualization_type": "hvm",
       "associate_public_ip_address": "true",
