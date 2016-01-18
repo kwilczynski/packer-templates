@@ -81,6 +81,9 @@ update-rc.d -f ondemand disable
 # Disabled for now, as it breaks the "initscripts" package post-install job.
 # dpkg-divert --rename /etc/init.d/ondemand
 
+rm -f /etc/blkid.tab \
+      /dev/.blkid.tab
+
 rm -f /core*
 
 rm -f /boot/grub/menu.lst_* \

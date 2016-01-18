@@ -15,25 +15,18 @@ sed -i -e \
     's/^Defaults.*requiretty/Defaults\t!requiretty/' \
     /etc/sudoers
 
-if [[ -n $UBUNTU_MAJOR_VERSION ]]; then
-    if (( $UBUNTU_MAJOR_VERSION > 12 )); then
-        sed -i -e \
-            '/Defaults\s\+env_reset/a Defaults\texempt_group=sudo' \
-            /etc/sudoers
-
-        sed -i -e \
-            's/%sudo\s*ALL=(ALL:ALL) ALL/%sudo\tALL=NOPASSWD:ALL/g' \
-            /etc/sudoers
-    else
-        sed -i -e \
-            '/Defaults\s\+env_reset/a Defaults\texempt_group=admin' \
-            /etc/sudoers
-
-        sed -i -e \
-            's/%admin\s*ALL=(ALL) ALL/%admin\tALL=NOPASSWD:ALL/g' \
-            /etc/sudoers
-    fi
+SUDO_GROUP='admin'
+if (( $UBUNTU_MAJOR_VERSION > 12 )); then
+    SUDO_GROUP='sudo'
 fi
+
+sed -i -e \
+    "/Defaults\s\+env_reset/a Defaults\texempt_group=${SUDO_GROUP}" \
+    /etc/sudoers
+
+sed -i -e \
+    "s/%${SUDO_GROUP}\s*ALL=(ALL:ALL) ALL/%${SUDO_GROUP}\tALL=NOPASSWD:ALL/g" \
+    /etc/sudoers
 
 if ! grep -q 'env_keep' /etc/sudoers; then
     sed -i -e \
@@ -59,9 +52,13 @@ done
 
 cat <<'EOF' | tee /etc/securetty
 console
-vc/1
 tty1
+vc/1
 EOF
 
 chown root: /etc/securetty
 chmod 440 /etc/securetty
+
+# Make sure to disallow access to "su" for everyone
+# other than a root user or a decidated group.
+dpkg-statoverride --update --add root $SUDO_GROUP 4750 /bin/su

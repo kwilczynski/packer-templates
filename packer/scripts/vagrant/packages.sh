@@ -96,6 +96,14 @@ inet_protocols = ipv4
 EOF
 fi
 
+sed -i -e \
+    's/^.*biff.*/biff = no/' \
+    /etc/postfix/main.cf
+
+sed -i -e \
+    's/^.*smtpd_banner.*/smtpd_banner = $myhostname ESMTP/' \
+    /etc/postfix/main.cf
+
 newaliases
 
 service postfix restart

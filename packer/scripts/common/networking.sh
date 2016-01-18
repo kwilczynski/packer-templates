@@ -49,22 +49,3 @@ pre-up sleep 2
 post-up ethtool -K eth0 tso off gso off lro off
 EOF
 fi
-
-apt-get -y --force-yes install sysfsutils
-
-cat <<'EOF' | tee -a /etc/sysfs.conf
-class/net/eth0/queues/rx-0/rps_cpus = f
-class/net/eth0/queues/tx-0/xps_cpus = f
-EOF
-
-# Adjust the queue size (for a moderate load on the node)
-# accordingly when using Receive Packet Steering (RPS)
-# functionality.
-cat <<'EOF' | tee -a /etc/sysfs.conf
-class/net/eth0/queues/rx-0/rps_flow_cnt = 32768
-EOF
-
-chown root: /etc/sysfs.conf
-chmod 644 /etc/sysfs.conf
-
-service sysfsutils restart

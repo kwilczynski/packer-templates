@@ -23,6 +23,12 @@ chown root: /etc/modprobe.d/blacklist-ipv6.conf \
 chmod 644 /etc/modprobe.d/blacklist-ipv6.conf \
           /etc/sysctl.d/10-disable-ipv6.conf
 
+if [[ -f /etc/netconfig ]]; then
+    sed -i -e \
+        '/^\(udp\|tcp\)6/ d' \
+        /etc/netconfig
+fi
+
 # Support both grub and grub2 style configuration.
 if grub-install --version | egrep -q '(1.9|2.0).+'; then
     sed -i -e \
