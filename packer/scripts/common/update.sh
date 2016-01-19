@@ -340,14 +340,15 @@ cat <<'EOF' | tee /etc/sysctl.conf
 #
 EOF
 
+# Disabled for now, as hese values are too aggressive to consider these a safe defaults:
+#   vm.overcommit_ratio = 80 (default: 50)
+#   vm.overcommit_memory = 2 (default: 0)
 cat <<'EOF' | tee /etc/sysctl.d/10-virtual-memory.conf
 vm.swappiness = 10
 vm.vfs_cache_pressure = 50
 vm.dirty_ratio = 80
 vm.dirty_background_ratio = 5
 vm.dirty_expire_centisecs = 12000
-vm.overcommit_ratio = 80
-vm.overcommit_memory = 2
 EOF
 
 cat <<'EOF' | tee /etc/sysctl.d/10-network.conf
@@ -427,30 +428,39 @@ chmod -R 644 /etc/sysctl.conf \
 
 service procps start
 
-cat <<'EOF' | tee -a /etc/sysfs.d/clock_source.conf
+cat <<'EOF' | tee /etc/sysfs.d/clock_source.conf
 devices/system/clocksource/clocksource0/current_clocksource = tsc
 EOF
 
 # Adjust the queue size (for a moderate load on the node)
 # accordingly when using Receive Packet Steering (RPS)
 # functionality (setting the "rps_flow_cnt" accordingly).
-cat <<'EOF' | tee -a /etc/sysfs.d/network.conf
-class/net/eth0/tx_queue_len = 5000
-class/net/eth0/queues/rx-0/rps_cpus = f
-class/net/eth0/queues/tx-0/xps_cpus = f
-class/net/eth0/queues/rx-0/rps_flow_cnt = 32768
+for nic in $(ls -1 /sys/class/net | grep -E 'eth*' 2>/dev/null | sort); do
+    cat <<EOF | tee /etc/sysfs.d/network.conf
+class/net/${nic}/tx_queue_len = 5000
+class/net/${nic}/queues/rx-0/rps_cpus = f
+class/net/${nic}/queues/tx-0/xps_cpus = f
+class/net/${nic}/queues/rx-0/rps_flow_cnt = 32768
 EOF
+done
 
-cat <<'EOF' | tee -a /etc/sysfs.d/disk.conf
-block/sda/queue/add_random = 0
-block/sda/queue/rq_affinity = 2
-block/sda/queue/read_ahead_kb = 256
-block/sda/queue/nr_requests = 256
-block/sda/queue/rotational = 0
-block/sda/queue/scheduler = noop
+for block in $(ls -1 /sys/block | grep -E '([s|xv]d*|dm*)' 2>/dev/null | sort); do
+    SCHEDULER="block/${block}/queue/scheduler = noop"
+    if [[ $block =~ ^dm.*$ ]]; then
+        SCHEDULER=''
+    fi
+
+    cat <<EOF | sed -e '/^$/d' | tee /etc/sysfs.d/disk.conf
+block/${block}/queue/add_random = 0
+block/${block}/queue/rq_affinity = 2
+block/${block}/queue/read_ahead_kb = 256
+block/${block}/queue/nr_requests = 256
+block/${block}/queue/rotational = 0
+${SCHEDULER}
 EOF
+done
 
-cat <<'EOF' | tee -a /etc/sysfs.d/transparent_hugepage.conf
+cat <<'EOF' | tee /etc/sysfs.d/transparent_hugepage.conf
 kernel/mm/transparent_hugepage/enabled = never
 kernel/mm/transparent_hugepage/defrag = never
 EOF
@@ -471,3 +481,9 @@ fi
 cat <<EOS | sed -e 's/\s\+/\t/g' | tee -a /etc/fstab
 none $SHM_MOUNT tmpfs rw,nosuid,nodev,noexec,relatime 0 0
 EOS
+
+# Remove support for logging to xconsole.
+for option in '/.*\/dev\/xconsole/,$d' '$d'; do
+    sed -i -e $option \
+        /etc/rsyslog.d/50-default.conf
+done
