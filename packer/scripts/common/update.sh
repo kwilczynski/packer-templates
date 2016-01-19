@@ -137,6 +137,15 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     rm -rf /var/lib/apt/lists
 fi
 
+# Ubuntu (up to) 12.04 require a third-party repository
+# to install latest version of the OpenSSH Server.
+if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    cat << 'EOF' | tee /etc/apt/sources.list.d/precise-backports.list
+deb http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
+deb-src http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
+EOF
+fi
+
 # By default, the "cloud-init" will override the default mirror when run as
 # Amazon EC2 instance, thus we replace this file only when building Vagrant
 # boxes.
