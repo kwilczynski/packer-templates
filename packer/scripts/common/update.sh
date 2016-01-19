@@ -369,7 +369,7 @@ EOF
 
 cat <<'EOF' | tee /etc/sysctl.d/10-network-security.conf
 net.ipv4.tcp_rfc1337 = 1
-net.ipv4.tcp_timestamp = 0
+net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_syn_retries = 3
 net.ipv4.tcp_synack_retries = 2
 net.ipv4.tcp_max_syn_backlog = 256
@@ -396,7 +396,7 @@ kernel.sysrq = 0
 EOF
 
 cat <<'EOF' | tee /etc/sysctl.d/10-kernel-security.conf
-kernel.suid_dumpable = 0
+fs.suid_dumpable = 0
 kernel.maps_protect = 1
 kernel.core_uses_pid = 1
 kernel.kptr_restrict = 1
