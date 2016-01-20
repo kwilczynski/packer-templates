@@ -2,6 +2,10 @@
 
 set -e
 
+_escape() {
+    echo $* | sed -e 's/\//\\\//g'
+}
+
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 KERNEL_OPTIONS=(
@@ -15,31 +19,32 @@ readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 # Support both grub and grub2 style configuration.
 if grub-install --version | egrep -q '(1.9|2.0).+'; then
     sed -i -e \
-        's/GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=0/g' \
+        's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=0/' \
         /etc/default/grub
 
     sed -i -e \
-        's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/g' \
+        's/.*GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' \
         /etc/default/grub
 
     sed -i -e \
-        's/.*GRUB_DISABLE_RECOVERY=.*/GRUB_DISABLE_RECOVERY=true/g' \
+        's/.*GRUB_DISABLE_RECOVERY=.*/GRUB_DISABLE_RECOVERY=true/' \
         /etc/default/grub
 
     sed -i -e \
-        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
         /etc/default/grub
 
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
         /etc/default/grub | \
             grep '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
-                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+                    tr ' ' '\n' | grep -E -v '(resume|vga)' | \
+                        sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/g" \
+        "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$(_escape $OPTIONS)\"/" \
         /etc/default/grub
 
     # Remove not needed settings override.
@@ -90,10 +95,11 @@ else
         /boot/grub/menu.lst | \
             grep -E '#.*defoptions=' | \
                 sed -e 's/.*defoptions=//' | \
-                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+                    tr ' ' '\n' | grep -E -v '(resume|vga)' | \
+                        sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/#.*defoptions=.*/# defoptions=${OPTIONS}/" \
+        "s/#.*defoptions=.*/# defoptions=$(_escape $OPTIONS)/" \
         /boot/grub/menu.lst
 
     unset UCF_FORCE_CONFFOLD

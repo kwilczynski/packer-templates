@@ -32,7 +32,7 @@ fi
 # Support both grub and grub2 style configuration.
 if grub-install --version | egrep -q '(1.9|2.0).+'; then
     sed -i -e \
-        's/GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 ipv6.disable=1"/g' \
+        's/.*GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 ipv6.disable=1"/g' \
         /etc/default/grub
 else
     sed -i -e \
