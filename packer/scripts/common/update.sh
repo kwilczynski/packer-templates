@@ -144,6 +144,13 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
 deb http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
 deb-src http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
 EOF
+
+    # Fetch Nate Carlson's PPA key from the key server.
+    if [[ ! -f ${COMMON_FILES}/precise-backports.key ]]; then
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3DD9F856
+    fi
+
+    apt-key add ${COMMON_FILES}/precise-backports.key
 fi
 
 # By default, the "cloud-init" will override the default mirror when run as
@@ -201,6 +208,9 @@ chmod 644 /etc/timezone
 
 dpkg-reconfigure tzdata
 
+# This package is needed to suppprt English localisation correctly.
+apt-get -y --force-yes install language-pack-en
+
 cat <<'EOF' | tee /var/lib/locales/supported.d/en
 en_US UTF-8
 en_US.UTF-8 UTF-8
@@ -210,13 +220,21 @@ en_US.ISO-8859-1 ISO-8859-1
 en_US.ISO-8859-15 ISO-8859-15
 EOF
 
-chown root: /var/lib/locales/supported.d/en
-chmod 644 /var/lib/locales/supported.d/en
+cat <<'EOF' | tee /var/lib/locales/supported.d/local
+en_US.UTF-8 UTF-8
+EOF
 
-dpkg-reconfigure locales
+chown root: /var/lib/locales/supported.d/{en,local}
+chmod 644 /var/lib/locales/supported.d/{en,local}
 
 locale-gen en_US.UTF-8
-update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
+update-locale \
+    LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
+    LANGUAGE="en_US.UTF-8:en_US:en"
+
+dpkg-reconfigure locales
 
 rm -f /etc/resolvconf/resolv.conf.d/head
 touch /etc/resolvconf/resolv.conf.d/head
@@ -271,8 +289,15 @@ chmod 644 /etc/nsswitch.conf
 update-ca-certificates -v
 
 if [[ $AMAZON_EC2 == 'yes' ]]; then
-    cat <<'EOF' | tee /etc/cloud/cloud.cfg.d/90_overrides.cfg
-datasource_list: [ NoCloud, Ec2, None ]
+    # The cloud-init package available on Ubuntu 12.04 is too old,
+    # and would fail with "None" being a data source.
+    DATA_SOURCES=( NoCloud Ec2 None )
+    if [[ $UBUNTU_VERSION == '12.04' ]]; then
+        DATA_SOURCES=( NoCloud Ec2 )
+    fi
+
+    cat <<EOF | tee /etc/cloud/cloud.cfg.d/90_overrides.cfg
+datasource_list: [ $(IFS=',' ; echo "${DATA_SOURCES[*]}" | sed -e 's/,/, /g') ]
 EOF
 
     dpkg-reconfigure cloud-init
@@ -316,6 +341,23 @@ EOF
     chown root: /etc/modprobe.d/blacklist-xen.conf
     chmod 644 /etc/modprobe.d/blacklist-xen.conf
 fi
+
+cat <<'EOF' | tee /etc/modprobe.d/blacklist-legacy.conf
+blacklist floppy
+blacklist joydev
+blacklist lp
+blacklist parport
+blacklist psmouse
+blacklist serio_raw
+EOF
+
+chown root: /etc/modprobe.d/blacklist-legacy.conf
+chmod 644 /etc/modprobe.d/blacklist-legacy.conf
+
+# Prevent the lp and rtc modules from being loaded.
+sed -i -e \
+    '/^lp/d;/^rtc/d' \
+    /etc/modules
 
 for package in procps sysfsutils; do
     apt-get -y --force-yes install $package
@@ -444,7 +486,7 @@ class/net/${nic}/queues/rx-0/rps_flow_cnt = 32768
 EOF
 done
 
-for block in $(ls -1 /sys/block | grep -E '([s|xv]d*|dm*)' 2>/dev/null | sort); do
+for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); do
     SCHEDULER="block/${block}/queue/scheduler = noop"
     if [[ $block =~ ^dm.*$ ]]; then
         SCHEDULER=''
@@ -473,17 +515,20 @@ chmod -R 644 /etc/sysfs.conf \
 
 service sysfsutils restart
 
-SHM_MOUNT='/run/shm'
-if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    SHM_MOUNT='/dev/shm'
-fi
-
+# The "/dev/shm" is going to be a symbolic link to "/run/shm" on
+# both the Ubuntu 12.04 and 14.04, and most likely onwards.
 cat <<EOS | sed -e 's/\s\+/\t/g' | tee -a /etc/fstab
-none $SHM_MOUNT tmpfs rw,nosuid,nodev,noexec,relatime 0 0
+none /run/shm tmpfs rw,nosuid,nodev,noexec,relatime 0 0
 EOS
+
+chown root: /etc/fstab
+chmod 644 /etc/fstab
 
 # Remove support for logging to xconsole.
 for option in '/.*\/dev\/xconsole/,$d' '$d'; do
     sed -i -e $option \
         /etc/rsyslog.d/50-default.conf
 done
+
+chown root: /etc/rsyslog.d/50-default.conf
+chmod 644 /etc/rsyslog.d/50-default.conf

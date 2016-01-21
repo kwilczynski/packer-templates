@@ -61,16 +61,24 @@ rm -f /etc/motd.tail
 touch /etc/motd.tail
 
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    if ! egrep -q 'motd=.+motd(\.dynamic)?' /etc/pam.d/sshd; then
+    if ! grep -q -E 'motd=.+motd(\.dynamic)?' /etc/pam.d/sshd; then
         sed -i -e \
             's#\(^session.*pam_motd.so\)\+#\1 motd=/run/motd noupdate\n&#' \
                 /etc/pam.d/sshd
+    else
+        sed -i -e \
+            's#\(motd=/run/motd\)\.dynamic\(.*\)#\1\2#' \
+            /etc/pam.d/sshd
     fi
 
-    if ! egrep -q 'motd=.+motd(\.dynamic)?' /etc/pam.d/login; then
+    if ! grep -q -E 'motd=.+motd(\.dynamic)?' /etc/pam.d/login; then
         sed -i -e \
             's#\(^session.*pam_motd.so\)\+#\1 motd=/run/motd noupdate\n&#' \
                 /etc/pam.d/login
+    else
+        sed -i -e \
+            's#\(motd=/run/motd\)\.dynamic\(.*\)#\1\2#' \
+            /etc/pam.d/login
     fi
 
     ( run-parts --lsbsysinit /etc/update-motd.d ) | tee /run/motd

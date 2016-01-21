@@ -15,17 +15,12 @@ sed -i -e \
     's/^Defaults.*requiretty/Defaults\t!requiretty/' \
     /etc/sudoers
 
-SUDO_GROUP='admin'
-if (( $UBUNTU_MAJOR_VERSION > 12 )); then
-    SUDO_GROUP='sudo'
-fi
-
 sed -i -e \
-    "/Defaults\s\+env_reset/a Defaults\texempt_group=${SUDO_GROUP}" \
+    "/Defaults\s\+env_reset/a Defaults\texempt_group=sudo" \
     /etc/sudoers
 
 sed -i -e \
-    "s/%${SUDO_GROUP}\s*ALL=(ALL:ALL) ALL/%${SUDO_GROUP}\tALL=NOPASSWD:ALL/g" \
+    "s/%sudo\s*ALL=(ALL:ALL) ALL/%sudo\tALL=NOPASSWD:ALL/g" \
     /etc/sudoers
 
 if ! grep -q 'env_keep' /etc/sudoers; then
@@ -44,10 +39,17 @@ chown root: /etc/sudoers
 chmod 440 /etc/sudoers
 
 for user in root ubuntu; do
+    # Not using the "HOME" environment variable here,
+    # to avoid breaking things during the image build.
+    eval HOME_DIRECTORY='~'${user}
+
     if getent passwd $user &>/dev/null; then
         echo "${user}:$(date | md5sum)" | chpasswd
         passwd -l $user
     fi
+
+    # Make sure that users are safe.
+    chmod 700 $HOME_DIRECTORY
 done
 
 cat <<'EOF' | tee /etc/securetty
@@ -61,4 +63,4 @@ chmod 440 /etc/securetty
 
 # Make sure to disallow access to "su" for everyone
 # other than a root user or a decidated group.
-dpkg-statoverride --update --add root $SUDO_GROUP 4750 /bin/su
+dpkg-statoverride --update --add root sudo 4750 /bin/su

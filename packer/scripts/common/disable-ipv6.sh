@@ -36,6 +36,6 @@ if grub-install --version | egrep -q '(1.9|2.0).+'; then
         /etc/default/grub
 else
     sed -i -e \
-        's/#.defoptions=\(.*\)/# defoptions=\1 ipv6.disable=1/' \
+        's/^#\sdefoptions=\(.*\)/# defoptions=\1 ipv6.disable=1/' \
         /boot/grub/menu.lst
 fi

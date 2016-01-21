@@ -2,10 +2,6 @@
 
 set -e
 
-_escape() {
-    echo $* | sed -e 's/\//\\\//g'
-}
-
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 KERNEL_OPTIONS=(
@@ -38,13 +34,12 @@ if grub-install --version | egrep -q '(1.9|2.0).+'; then
     OPTIONS=$(sed -e \
         "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
         /etc/default/grub | \
-            grep '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
+            grep -E '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
-                    tr ' ' '\n' | grep -E -v '(resume|vga)' | \
-                        sort -u | tr '\n' ' ' | xargs)
+                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$(_escape $OPTIONS)\"/" \
+        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/" \
         /etc/default/grub
 
     # Remove not needed settings override.
@@ -91,15 +86,14 @@ else
 
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/#.*defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        "s/^#\sdefoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
         /boot/grub/menu.lst | \
-            grep -E '#.*defoptions=' | \
+            grep -E '^#\sdefoptions=' | \
                 sed -e 's/.*defoptions=//' | \
-                    tr ' ' '\n' | grep -E -v '(resume|vga)' | \
-                        sort -u | tr '\n' ' ' | xargs)
+                    tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/#.*defoptions=.*/# defoptions=$(_escape $OPTIONS)/" \
+        "s/^#\sdefoptions=.*/# defoptions=${OPTIONS}/" \
         /boot/grub/menu.lst
 
     unset UCF_FORCE_CONFFOLD

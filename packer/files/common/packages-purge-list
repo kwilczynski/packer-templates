@@ -8,7 +8,6 @@
 ^debian-faq*
 ^doc-(linux|html)-*
 ^grub-efi-amd64*
-^language-pack-*
 ^libgd[0-9]
 ^libx11-*
 ^libxcb[0-9]

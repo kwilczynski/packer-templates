@@ -16,6 +16,9 @@ printf "\n"
 locale
 printf "\n"
 
+locale -a
+printf "\n"
+
 ps -ef
 printf "\n"
 

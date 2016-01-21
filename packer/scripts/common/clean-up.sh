@@ -49,6 +49,12 @@ if [[ $AMAZON_EC2 == 'no' ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     PACKAGES_TO_PURGE+=( ^libruby* ^ruby* kpartx parted unzip )
 fi
 
+# Add a list of surplus language packages to remove,
+# but filter the English ones that are needed.
+PACKAGES_TO_PURGE+=( $(apt-cache show '^language-pack-*' | \
+    awk -F: '/Package:/ { print $2 }' | sed -e 's/^\s//' | \
+        grep -v -E '^language-pack-(en|en-base)' | xargs) )
+
 for package in "${PACKAGES_TO_PURGE[@]}"; do
     apt-get -y --force-yes purge $package || true
 done
@@ -87,6 +93,7 @@ rm -f /etc/blkid.tab \
 rm -f /core*
 
 rm -f /boot/grub/menu.lst_* \
+      /boot/grub/menu.lst~ \
       /boot/*.old*
 
 rm -f /etc/network/interfaces.old
@@ -197,15 +204,20 @@ rm -rf /dev/.udev \
 # Remove surplus locale (and only retain the English one).
 mkdir -p /tmp/locale
 
-for locale in en en_US; do
-    LOCALE_PATH=/usr/share/locale/${locale}
-    if [[ -d $LOCALE_PATH ]]; then
-        mv $LOCALE_PATH /tmp/locale/
+for directory in /usr/share/locale /usr/share/locale-langpack; do
+    for locale in en en@boldquot en_US; do
+        LOCALE_PATH=${directory}/${locale}
+        if [[ -d $LOCALE_PATH ]]; then
+            mv $LOCALE_PATH /tmp/locale/
+        fi
+    done
+
+    rm -rf ${directory}/*
+
+    if [[ -d $directory ]]; then
+        mv /tmp/locale/* ${directory}/
     fi
 done
-
-rm -rf /usr/share/locale/*
-mv /tmp/locale/* /usr/share/locale/
 
 rm -rf /tmp/locale
 

@@ -2,10 +2,6 @@
 
 set -e
 
-_escape() {
-    echo $* | sed -e 's/\//\\\//g'
-}
-
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 KERNEL_OPTIONS=(
@@ -17,31 +13,31 @@ KERNEL_OPTIONS=(
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 
 sed -i -e \
-    's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=0/g' \
+    's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=0/' \
     /etc/default/grub
 
 sed -i -e \
-    's/.*GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/g' \
+    's/.*GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' \
     /etc/default/grub
 
 sed -i -e \
-    's/.*GRUB_DISABLE_RECOVERY=.*/GRUB_DISABLE_RECOVERY=true/g' \
+    's/.*GRUB_DISABLE_RECOVERY=.*/GRUB_DISABLE_RECOVERY=true/' \
     /etc/default/grub
 
 sed -i -e \
-    "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+    "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
     /etc/default/grub
 
 # Remove any repeated (de-duplicate) Kernel options.
 OPTIONS=$(sed -e \
-    "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/g" \
+    "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
     /etc/default/grub | \
-        egrep '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
+        grep -E '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
             sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
                 tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
 sed -i -e \
-    "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"$(_escape $OPTIONS)\"/" \
+    "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"${OPTIONS}\"/" \
     /etc/default/grub
 
 # Add include directory should it not exist.

@@ -125,26 +125,26 @@ readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 if grub-install --version | egrep -q '(1.9|2.0).+'; then
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/g" \
+        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/" \
         /etc/default/grub | \
-            grep '^GRUB_CMDLINE_LINUX=' | \
+            grep -E '^GRUB_CMDLINE_LINUX=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX=\"\(.*\)\"/\1/' | \
                     tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"${OPTIONS}\"/g" \
+        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"${OPTIONS}\"/" \
         /etc/default/grub
 else
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/#.*defoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        "s/^#\sdefoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
         /boot/grub/menu.lst | \
-            grep -E '#.*defoptions=' | \
+            grep -E '^#\sdefoptions=' | \
                 sed -e 's/.*defoptions=//' | \
                     tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
     sed -i -e \
-        "s/#.*defoptions=.*/# defoptions=${OPTIONS}/" \
+        "s/^#\sdefoptions=.*/# defoptions=${OPTIONS}/" \
         /boot/grub/menu.lst
 fi
 
