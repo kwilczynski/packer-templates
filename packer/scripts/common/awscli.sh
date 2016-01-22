@@ -9,7 +9,7 @@ if [[ -z $AWS_DEFAULT_REGION ]]; then
     AWS_DEFAULT_REGION='us-east-1'
 fi
 
-cat <<'EOF' | tee /etc/bash_completion.d/aws
+cat <<'EOF' > /etc/bash_completion.d/aws
 complete -C aws_completer aws
 EOF
 
@@ -53,7 +53,7 @@ for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
         [[ -d ${HOME_DIRECTORY}/.aws ]] || mkdir -p ${HOME_DIRECTORY}/.aws
 
         # Basic, just to set correct region.
-        cat <<EOF | sed -e '/^$/d' | tee ${HOME_DIRECTORY}/.aws/config
+        cat <<EOF | sed -e '/^$/d' > ${HOME_DIRECTORY}/.aws/config
 [default]
 $(if [[ $PACKER_BUILDER_TYPE =~ ^amazon-.+$ ]]; then
     printf "%s = %s" "region" $AWS_DEFAULT_REGION

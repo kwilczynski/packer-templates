@@ -49,7 +49,7 @@ SOURCE_DIRECTORY=/usr/src/$(echo $SRIOV_DRIVER | sed -e 's/\.tar\.gz//')
 pushd $SOURCE_DIRECTORY &>/dev/null
 
 # WARNING: A variable needs to be escaped there!
-cat <<EOF | tee ${SOURCE_DIRECTORY}/dkms.conf
+cat <<EOF > ${SOURCE_DIRECTORY}/dkms.conf
 PACKAGE_NAME="ixgbevf"
 PACKAGE_VERSION="${SRIOV_DRIVER_VERSION}"
 
@@ -77,7 +77,7 @@ done
 
 # Make sure to limit the number of interrupts that the adapter (the
 # underlying Intel network card) will generate for incoming packets.
-cat <<'EOF' | tee /etc/modprobe.d/ixgbevf.conf
+cat <<'EOF' > /etc/modprobe.d/ixgbevf.conf
 options ixgbevf InterruptThrottleRate=1,1,1,1,1,1,1,1
 EOF
 

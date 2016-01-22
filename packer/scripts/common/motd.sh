@@ -16,6 +16,9 @@ for package in "${PACKAGES[@]}"; do
     apt-get -y --force-yes install $package
 done
 
+# Remove the warranty information.
+rm -f /etc/legal
+
 rm -f /etc/update-motd.d/10-help-text \
       /etc/update-motd.d/51-cloudguest \
       /etc/update-motd.d/90-updates-available \
@@ -28,7 +31,7 @@ mkdir -p /etc/landscape
 chown root: /etc/landscape
 chmod 755 /etc/landscape
 
-cat <<'EOF' | tee /etc/landscape/client.conf
+cat <<'EOF' > /etc/landscape/client.conf
 [sysinfo]
 exclude_sysinfo_plugins = Temperature,LandscapeLink
 EOF
@@ -41,7 +44,7 @@ if [[ -f /etc/init.d/landscape-client ]]; then
     update-rc.d landscape-client disable
 fi
 
-cat <<'EOF' | tee /etc/update-motd.d/99-footer
+cat <<'EOF' > /etc/update-motd.d/99-footer
 #!/bin/sh
 
 # Add extra information when showing message of the day.
@@ -81,12 +84,12 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
             /etc/pam.d/login
     fi
 
-    ( run-parts --lsbsysinit /etc/update-motd.d ) | tee /run/motd
+    run-parts --lsbsysinit /etc/update-motd.d > /run/motd
 
     chown root: /run/motd
     chmod 644 /run/motd
 else
-    ( run-parts --lsbsysinit /etc/update-motd.d ) | tee /var/run/motd.dynamic
+    run-parts --lsbsysinit /etc/update-motd.d > /var/run/motd.dynamic
 
     chown root: /var/run/motd.dynamic
     chmod 644 /var/run/motd.dynamic

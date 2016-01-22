@@ -26,13 +26,8 @@ apt-get -y --force-yes install python-setuptools
 # Remove current and rather old version.
 apt-get -y --force-yes purge python-pip
 
-# Lock down pip version to a known stable,
-# since the latest version 8.x causes a lot
-# of Python eggs to break, see:
-#   https://github.com/pypa/pip/issues/3384
-easy_install pip==7.1.2
-# Disabled; see comment above.
-# pip install --upgrade pip
+easy_install pip
+pip install --upgrade pip
 
 for file in /usr/local/bin/pip*; do
     ln -sf $file /usr/bin/${file##*/}

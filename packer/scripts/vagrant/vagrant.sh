@@ -8,7 +8,7 @@ readonly VAGRANT_FILES='/var/tmp/vagrant'
 
 [[ -d $VAGRANT_FILES ]] || mkdir -p $VAGRANT_FILES
 
-cat <<'EOF' | tee /etc/sudoers.d/vagrant
+cat <<'EOF' > /etc/sudoers.d/vagrant
 Defaults:vagrant !requiretty,!tty_tickets
 Defaults:vagrant env_keep += "SSH_AGENT_PID SSH_AUTH_SOCK"
 

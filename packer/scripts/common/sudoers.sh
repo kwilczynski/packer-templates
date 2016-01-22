@@ -39,20 +39,13 @@ chown root: /etc/sudoers
 chmod 440 /etc/sudoers
 
 for user in root ubuntu; do
-    # Not using the "HOME" environment variable here,
-    # to avoid breaking things during the image build.
-    eval HOME_DIRECTORY='~'${user}
-
     if getent passwd $user &>/dev/null; then
         echo "${user}:$(date | md5sum)" | chpasswd
         passwd -l $user
     fi
-
-    # Make sure that users are safe.
-    chmod 700 $HOME_DIRECTORY
 done
 
-cat <<'EOF' | tee /etc/securetty
+cat <<'EOF' > /etc/securetty
 console
 tty1
 vc/1

@@ -37,14 +37,14 @@ if ! dpkg -s ethtool &>/dev/null; then
 fi
 
 if [[ -d /etc/network/interfaces.d ]]; then
-    cat <<'EOF' | tee /etc/network/interfaces.d/eth0.cfg
+    cat <<'EOF' > /etc/network/interfaces.d/eth0.cfg
 auto eth0
 iface eth0 inet dhcp
 pre-up sleep 2
 post-up ethtool -K eth0 tso off gso off lro off
 EOF
 else
-    cat <<'EOF' | tee -a /etc/network/interfaces
+    cat <<'EOF' >> /etc/network/interfaces
 pre-up sleep 2
 post-up ethtool -K eth0 tso off gso off lro off
 EOF

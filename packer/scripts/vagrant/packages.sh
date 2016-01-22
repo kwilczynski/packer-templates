@@ -45,7 +45,7 @@ postfix postfix/transport_map_warning note
 EOF
 ) | debconf-set-selections
 
-cat <<'EOF' | tee /etc/aliases
+cat <<'EOF' > /etc/aliases
 root:       vagrant
 
 postmaster: root
@@ -75,8 +75,7 @@ EOF
 chown root: /etc/aliases
 chmod 644 /etc/aliases
 
-echo $FQDN | tee \
-     /etc/mailname
+echo $FQDN > /etc/mailname
 
 chown root: /etc/mailname
 chmod 644 /etc/mailname
@@ -91,7 +90,7 @@ sed -i -e \
     /etc/postfix/main.cf
 
 if ! grep -q 'inet_protocols' /etc/postfix/main.cf; then
-    cat <<'EOF' | tee -a /etc/postfix/main.cf
+    cat <<'EOF' >> /etc/postfix/main.cf
 inet_protocols = ipv4
 EOF
 fi

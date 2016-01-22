@@ -56,7 +56,7 @@ for directory in /etc/cfn /etc/cfn/hooks.d; do
     chmod 755 $directory
 done
 
-cat <<'EOF' | tee /etc/cfn/cfn-hup.conf
+cat <<'EOF' > /etc/cfn/cfn-hup.conf
 [main]
 stack=
 region=
@@ -67,7 +67,7 @@ EOF
 chown root: /etc/cfn/cfn-hup.conf
 chmod 644 /etc/cfn/cfn-hup.conf
 
-cat <<'EOF' | tee /etc/cfn/hooks.d/cfn-auto-reloader.conf
+cat <<'EOF' > /etc/cfn/hooks.d/cfn-auto-reloader.conf
 [cfn-auto-reloader-hook]
 triggers=post.update
 path=

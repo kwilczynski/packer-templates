@@ -33,5 +33,5 @@ for value in "${SSH_SETTINGS[@]}"; do
         /etc/ssh/sshd_config
 
     grep -qF "$value" /etc/ssh/sshd_config || \
-        echo "$value" | tee -a /etc/ssh/sshd_config
+        echo "$value" >> /etc/ssh/sshd_config
 done

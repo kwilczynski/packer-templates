@@ -21,7 +21,7 @@ if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/nu
     AMAZON_EC2='yes'
 fi
 
-cat <<'EOF' | tee /etc/apt/apt.conf.d/00trustcdrom
+cat <<'EOF' > /etc/apt/apt.conf.d/00trustcdrom
 APT
 {
     Authentication
@@ -34,7 +34,7 @@ EOF
 chown root: /etc/apt/apt.conf.d/00trustcdrom
 chmod 644 /etc/apt/apt.conf.d/00trustcdrom
 
-cat <<'EOF' | tee /etc/apt/apt.conf.d/15update-stamp
+cat <<'EOF' > /etc/apt/apt.conf.d/15update-stamp
 APT
 {
     Update
@@ -59,7 +59,7 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
      PIPELINE_DEPTH=0
 fi
 
-cat <<EOF | tee /etc/apt/apt.conf.d/99apt-acquire
+cat <<EOF > /etc/apt/apt.conf.d/99apt-acquire
 Acquire
 {
     PDiffs "0";
@@ -96,7 +96,7 @@ EOF
 chown root: /etc/apt/apt.conf.d/99apt-acquire
 chmod 644 /etc/apt/apt.conf.d/99apt-acquire
 
-cat <<'EOF' | tee /etc/apt/apt.conf.d/99apt-get
+cat <<'EOF' > /etc/apt/apt.conf.d/99apt-get
 APT
 {
     Install-Suggests "0";
@@ -118,7 +118,7 @@ EOF
 chown root: /etc/apt/apt.conf.d/99apt-get
 chmod 644 /etc/apt/apt.conf.d/99apt-get
 
-cat <<'EOF' | tee /etc/apt/apt.conf.d/99dpkg
+cat <<'EOF' > /etc/apt/apt.conf.d/99dpkg
 DPkg
 {
     Options
@@ -140,7 +140,7 @@ fi
 # Ubuntu (up to) 12.04 require a third-party repository
 # to install latest version of the OpenSSH Server.
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    cat << 'EOF' | tee /etc/apt/sources.list.d/precise-backports.list
+    cat << 'EOF' > /etc/apt/sources.list.d/precise-backports.list
 deb http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
 deb-src http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
 EOF
@@ -158,8 +158,8 @@ fi
 # boxes.
 if [[ $AMAZON_EC2 == 'no' ]]; then
     # Render template overriding default list.
-    eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" | \
-        tee /etc/apt/sources.list
+    eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" \
+        > /etc/apt/sources.list
 
     chown root: /etc/apt/sources.list
     chmod 644 /etc/apt/sources.list
@@ -199,7 +199,7 @@ done
 
 apt-get -y --force-yes install linux-headers-$(uname -r)
 
-cat <<'EOF' | tee /etc/timezone
+cat <<'EOF' > /etc/timezone
 Etc/UTC
 EOF
 
@@ -209,9 +209,12 @@ chmod 644 /etc/timezone
 dpkg-reconfigure tzdata
 
 # This package is needed to suppprt English localisation correctly.
-apt-get -y --force-yes install language-pack-en
+apt-get -y --force-yes install language-pack-en 1> /dev/null
 
-cat <<'EOF' | tee /var/lib/locales/supported.d/en
+# Remove current version ...
+rm -f /usr/lib/locale/locale-archive
+
+cat <<'EOF' > /var/lib/locales/supported.d/en
 en_US UTF-8
 en_US.UTF-8 UTF-8
 en_US.Latin1 ISO-8859-1
@@ -220,7 +223,7 @@ en_US.ISO-8859-1 ISO-8859-1
 en_US.ISO-8859-15 ISO-8859-15
 EOF
 
-cat <<'EOF' | tee /var/lib/locales/supported.d/local
+cat <<'EOF' > /var/lib/locales/supported.d/local
 en_US.UTF-8 UTF-8
 EOF
 
@@ -253,7 +256,7 @@ if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
             awk '{ print $2 }') )
 fi
 
-cat <<EOF | sed -e '/^$/d' | tee /etc/resolvconf/resolv.conf.d/tail
+cat <<EOF | sed -e '/^$/d' > /etc/resolvconf/resolv.conf.d/tail
 $(for server in "${NAME_SERVERS[@]}"; do
     echo "nameserver $server"
 done)
@@ -267,7 +270,7 @@ resolvconf -u
 
 apt-get -y --force-yes install libnss-myhostname
 
-cat <<'EOF' | tee /etc/nsswitch.conf
+cat <<'EOF' > /etc/nsswitch.conf
 passwd:         compat
 group:          compat
 shadow:         compat
@@ -296,7 +299,7 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
         DATA_SOURCES=( NoCloud Ec2 )
     fi
 
-    cat <<EOF | tee /etc/cloud/cloud.cfg.d/90_overrides.cfg
+    cat <<EOF > /etc/cloud/cloud.cfg.d/90_overrides.cfg
 datasource_list: [ $(IFS=',' ; echo "${DATA_SOURCES[*]}" | sed -e 's/,/, /g') ]
 EOF
 
@@ -334,7 +337,7 @@ chmod 755 /srv
 
 if [[ $AMAZON_EC2 == 'yes' ]]; then
     # Disable Xen framebuffer driver causing 30 seconds boot delay.
-cat <<'EOF' | tee /etc/modprobe.d/blacklist-xen.conf
+cat <<'EOF' > /etc/modprobe.d/blacklist-xen.conf
 blacklist xen_fbfront
 EOF
 
@@ -342,10 +345,11 @@ EOF
     chmod 644 /etc/modprobe.d/blacklist-xen.conf
 fi
 
-cat <<'EOF' | tee /etc/modprobe.d/blacklist-legacy.conf
+cat <<'EOF' > /etc/modprobe.d/blacklist-legacy.conf
 blacklist floppy
 blacklist joydev
 blacklist lp
+blacklist ppdev
 blacklist parport
 blacklist psmouse
 blacklist serio_raw
@@ -374,7 +378,7 @@ done
 find /etc/sysctl.d/*.conf -type f | \
     xargs sed -i -e '/^#.*/d;/^$/d;s/\(\w\+\)=\(\w\+\)/\1 = \2/'
 
-cat <<'EOF' | tee /etc/sysctl.conf
+cat <<'EOF' > /etc/sysctl.conf
 #
 # /etc/sysctl.conf - Configuration file for setting system variables
 # See /etc/sysctl.d/ for additional system variables.
@@ -385,7 +389,7 @@ EOF
 # Disabled for now, as hese values are too aggressive to consider these a safe defaults:
 #   vm.overcommit_ratio = 80 (default: 50)
 #   vm.overcommit_memory = 2 (default: 0)
-cat <<'EOF' | tee /etc/sysctl.d/10-virtual-memory.conf
+cat <<'EOF' > /etc/sysctl.d/10-virtual-memory.conf
 vm.swappiness = 10
 vm.vfs_cache_pressure = 50
 vm.dirty_ratio = 80
@@ -393,7 +397,7 @@ vm.dirty_background_ratio = 5
 vm.dirty_expire_centisecs = 12000
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-network.conf
+cat <<'EOF' > /etc/sysctl.d/10-network.conf
 net.core.default_qdisc = fq_codel
 net.core.somaxconn = 1024
 net.core.rmem_max = 16777216
@@ -410,7 +414,7 @@ net.ipv4.tcp_slow_start_after_idle = 0
 net.ipv4.ip_local_port_range = 1024 65535
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-network-security.conf
+cat <<'EOF' > /etc/sysctl.d/10-network-security.conf
 net.ipv4.tcp_rfc1337 = 1
 net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_syn_retries = 3
@@ -434,11 +438,11 @@ net.ipv4.conf.all.secure_redirects = 1
 net.ipv4.conf.default.secure_redirects = 1
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-magic-sysrq.conf
+cat <<'EOF' > /etc/sysctl.d/10-magic-sysrq.conf
 kernel.sysrq = 0
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-kernel-security.conf
+cat <<'EOF' > /etc/sysctl.d/10-kernel-security.conf
 fs.suid_dumpable = 0
 kernel.maps_protect = 1
 kernel.core_uses_pid = 1
@@ -447,17 +451,17 @@ kernel.randomize_va_space = 2
 kernel.perf_event_paranoid = 2
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-kernel-panic.conf
+cat <<'EOF' > /etc/sysctl.d/10-kernel-panic.conf
 kernel.panic = 60
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-console-messages.conf
+cat <<'EOF' > /etc/sysctl.d/10-console-messages.conf
 kernel.printk = 4 4 1 7
 kernel.printk_ratelimit = 5
 kernel.printk_ratelimit_burst = 10
 EOF
 
-cat <<'EOF' | tee /etc/sysctl.d/10-kernel-limits.conf
+cat <<'EOF' > /etc/sysctl.d/10-kernel-limits.conf
 fs.file-max = 262144
 kernel.pid_max = 65535
 EOF
@@ -470,7 +474,7 @@ chmod -R 644 /etc/sysctl.conf \
 
 service procps start
 
-cat <<'EOF' | tee /etc/sysfs.d/clock_source.conf
+cat <<'EOF' > /etc/sysfs.d/clock_source.conf
 devices/system/clocksource/clocksource0/current_clocksource = tsc
 EOF
 
@@ -478,7 +482,7 @@ EOF
 # accordingly when using Receive Packet Steering (RPS)
 # functionality (setting the "rps_flow_cnt" accordingly).
 for nic in $(ls -1 /sys/class/net | grep -E 'eth*' 2>/dev/null | sort); do
-    cat <<EOF | tee /etc/sysfs.d/network.conf
+    cat <<EOF > /etc/sysfs.d/network.conf
 class/net/${nic}/tx_queue_len = 5000
 class/net/${nic}/queues/rx-0/rps_cpus = f
 class/net/${nic}/queues/tx-0/xps_cpus = f
@@ -492,7 +496,7 @@ for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); d
         SCHEDULER=''
     fi
 
-    cat <<EOF | sed -e '/^$/d' | tee /etc/sysfs.d/disk.conf
+    cat <<EOF | sed -e '/^$/d' > /etc/sysfs.d/disk.conf
 block/${block}/queue/add_random = 0
 block/${block}/queue/rq_affinity = 2
 block/${block}/queue/read_ahead_kb = 256
@@ -502,7 +506,7 @@ ${SCHEDULER}
 EOF
 done
 
-cat <<'EOF' | tee /etc/sysfs.d/transparent_hugepage.conf
+cat <<'EOF' > /etc/sysfs.d/transparent_hugepage.conf
 kernel/mm/transparent_hugepage/enabled = never
 kernel/mm/transparent_hugepage/defrag = never
 EOF
@@ -517,7 +521,7 @@ service sysfsutils restart
 
 # The "/dev/shm" is going to be a symbolic link to "/run/shm" on
 # both the Ubuntu 12.04 and 14.04, and most likely onwards.
-cat <<EOS | sed -e 's/\s\+/\t/g' | tee -a /etc/fstab
+cat <<EOS | sed -e 's/\s\+/\t/g' >> /etc/fstab
 none /run/shm tmpfs rw,nosuid,nodev,noexec,relatime 0 0
 EOS
 

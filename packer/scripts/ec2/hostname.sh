@@ -4,7 +4,7 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-cat <<EOF | tee /etc/hosts
+cat <<EOF > /etc/hosts
 127.0.0.1 localhost.localdomain localhost loopback
 EOF
 

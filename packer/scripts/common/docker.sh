@@ -11,7 +11,7 @@ readonly DOCKER_FILES='/var/tmp/docker'
 
 [[ -d $DOCKER_FILES ]] || mkdir -p $DOCKER_FILES
 
-cat <<'EOF' | tee /etc/apt/sources.list.d/docker.list
+cat <<'EOF' > /etc/apt/sources.list.d/docker.list
 deb https://get.docker.com/ubuntu docker main
 EOF
 
@@ -31,7 +31,7 @@ apt-get -y --force-yes update \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
 # Dependencies needed by Docker, etc.
-PACKAGES=( pciutils procps btrfs-tools git )
+PACKAGES=( pciutils procps btrfs-tools xfsprogs git )
 
 if [[ -n $DOCKER_VERSION ]]; then
     PACKAGES+=( lxc-docker-${DOCKER_VERSION} )
@@ -169,7 +169,7 @@ for directory in /srv/docker /var/lib/docker; do
 done
 
 # A bind-mount for the Docker root directory.
-cat <<'EOS' | sed -e 's/\s\+/\t/g' | tee -a /etc/fstab
+cat <<'EOS' | sed -e 's/\s\+/\t/g' >> /etc/fstab
 /srv/docker /var/lib/docker none bind 0 0
 EOS
 

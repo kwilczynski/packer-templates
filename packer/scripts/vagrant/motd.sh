@@ -14,7 +14,7 @@ fi
 
 readonly BUILD_DATE="$(date -d @${BUILD_TIMESTAMP})"
 
-cat <<EOF | tee /etc/os-release-vagrant
+cat <<EOF > /etc/os-release-vagrant
 BUILD_NAME="${PACKER_BUILD_NAME:-"UNKNOWN"}"
 BUILD_NUMBER=${BUILD_NUMBER:-0}
 BUILD_TIMESTAMP=$BUILD_TIMESTAMP
@@ -26,7 +26,7 @@ EOF
 chown root: /etc/os-release-vagrant
 chmod 644 /etc/os-release-vagrant
 
-cat <<'EOF' | tee /etc/update-motd.d/10-vagrant
+cat <<'EOF' > /etc/update-motd.d/10-vagrant
 #!/bin/sh
 
 [ -f /etc/os-release-vagrant ] || exit 0

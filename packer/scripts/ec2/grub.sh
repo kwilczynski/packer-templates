@@ -49,7 +49,7 @@ if grub-install --version | egrep -q '(1.9|2.0).+'; then
     [[ -d /etc/default/grub.d ]] || mkdir -p /etc/default/grub.d
 
     # Disable the GRUB_RECORDFAIL_TIMEOUT.
-    cat <<'EOF' | tee /etc/default/grub.d/99-disable-recordfail.cfg
+    cat <<'EOF' > /etc/default/grub.d/99-disable-recordfail.cfg
 GRUB_RECORDFAIL_TIMEOUT=0
 EOF
 

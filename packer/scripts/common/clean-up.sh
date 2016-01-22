@@ -41,19 +41,13 @@ dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | grep -vE '(libc|gcc)' |
     xargs apt-get -y --force-yes purge
 
 # A list of packages to be purged.
-PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge-list 2>/dev/null) )
+PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge.list 2>/dev/null) )
 
 # Keep these packages when building an Instance Store type image (needed by
 # the Amazon EC2 AMI Tools), and remove otherwise.
 if [[ $AMAZON_EC2 == 'no' ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
-    PACKAGES_TO_PURGE+=( ^libruby* ^ruby* kpartx parted unzip )
+    PACKAGES_TO_PURGE+=( ^libruby[0-9]\. ^ruby[0-9]\. kpartx parted unzip )
 fi
-
-# Add a list of surplus language packages to remove,
-# but filter the English ones that are needed.
-PACKAGES_TO_PURGE+=( $(apt-cache show '^language-pack-*' | \
-    awk -F: '/Package:/ { print $2 }' | sed -e 's/^\s//' | \
-        grep -v -E '^language-pack-(en|en-base)' | xargs) )
 
 for package in "${PACKAGES_TO_PURGE[@]}"; do
     apt-get -y --force-yes purge $package || true
@@ -68,6 +62,10 @@ done
 for file in /etc/init/tty{2,3,4,5,6}.conf; do
     dpkg-divert --rename $file
 done
+
+sed -i -e \
+    's#^\(ACTIVE_CONSOLES="/dev/tty\).*#\11"#' \
+    /etc/default/console-setup
 
 # Disable the Ubuntu splash screen (during boot time).
 for file in /etc/init/plymouth*.conf; do
