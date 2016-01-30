@@ -444,11 +444,19 @@ EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-kernel-security.conf
 fs.suid_dumpable = 0
+net.core.bpf_jit_enable = 0
 kernel.maps_protect = 1
 kernel.core_uses_pid = 1
 kernel.kptr_restrict = 1
+kernel.dmesg_restrict = 1
 kernel.randomize_va_space = 2
 kernel.perf_event_paranoid = 2
+kernel.yama.ptrace_scope = 1
+EOF
+
+cat <<'EOF' > /etc/sysctl.d/10-link-restrictions.conf
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-kernel-panic.conf
