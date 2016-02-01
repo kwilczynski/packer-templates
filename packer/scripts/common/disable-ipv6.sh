@@ -29,6 +29,35 @@ if [[ -f /etc/netconfig ]]; then
         /etc/netconfig
 fi
 
+# Configure getaddrinfo() family to prefer IPv4 over IPv6 by default
+# to ensure that DNS resolution does not get stuck when AAAA records
+# are being returned (which is the default preference these days).
+cat <<'EOF' > /etc/gai.conf
+reload no
+
+label ::1/128       0
+label ::/0          1
+label 2002::/16     2
+label ::/96         3
+label ::ffff:0:0/96 4
+label fec0::/10     5
+label fc00::/7      6
+label 2001:0::/32   7
+
+precedence  ::1/128       50
+precedence  ::/0          40
+precedence  2002::/16     30
+precedence ::/96          20
+precedence ::ffff:0:0/96  100
+
+scopev4 ::ffff:169.254.0.0/112  2
+scopev4 ::ffff:127.0.0.0/104    2
+scopev4 ::ffff:0.0.0.0/96       14
+EOF
+
+chown root: /etc/gai.conf
+chmod 644 /etc/gai.conf
+
 # Support both grub and grub2 style configuration.
 if grub-install --version | egrep -q '(1.9|2.0).+'; then
     sed -i -e \
