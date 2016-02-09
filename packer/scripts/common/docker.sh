@@ -8,19 +8,19 @@ export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
 readonly DOCKER_FILES='/var/tmp/docker'
+readonly UBUNTU_RELEASE=$(lsb_release -sc)
 
 [[ -d $DOCKER_FILES ]] || mkdir -p $DOCKER_FILES
 
-cat <<'EOF' > /etc/apt/sources.list.d/docker.list
-deb https://get.docker.com/ubuntu docker main
+cat <<EOF > /etc/apt/sources.list.d/docker.list
+deb https://apt.dockerproject.org/repo ubuntu-${UBUNTU_RELEASE} main
 EOF
 
 chown root: /etc/apt/sources.list.d/docker.list
 chmod 644 /etc/apt/sources.list.d/docker.list
 
 if [[ ! -f ${DOCKER_FILES}/docker.key ]]; then
-    wget --no-check-certificate -O ${DOCKER_FILES}/docker.key \
-        https://get.docker.com/gpg
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 2C52609D
 fi
 
 apt-key add ${DOCKER_FILES}/docker.key
@@ -34,9 +34,11 @@ apt-get -y --force-yes update \
 PACKAGES=( pciutils procps btrfs-tools xfsprogs git )
 
 if [[ -n $DOCKER_VERSION ]]; then
-    PACKAGES+=( lxc-docker-${DOCKER_VERSION} )
+    # The package name and version is now a little bit awkaward
+    # to work with e.g., docker-engine_1.10.0-0~trusty_amd64.deb.
+    PACKAGES+=( $(printf 'docker-engine=%s-0~%s' "${DOCKER_VERSION}" "${UBUNTU_RELEASE}") )
 else
-    PACKAGES+=( lxc-docker )
+    PACKAGES+=( docker-engine )
 fi
 
 for package in "${PACKAGES[@]}"; do
