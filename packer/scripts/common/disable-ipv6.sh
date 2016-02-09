@@ -5,6 +5,7 @@ set -e
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 cat <<'EOF' > /etc/modprobe.d/blacklist-ipv6.conf
+options ipv6 disable=1
 alias net-pf-10 off
 alias ipv6 off
 install ipv6 /bin/true
