@@ -30,10 +30,18 @@ sed -i -e \
     "s/.*NTPD_OPTS='\(.*\)'/NTPD_OPTS='\1 -4'/g" \
     /etc/default/ntp
 
-# Makes time sync more aggressively in a VM.
-# see: http://kb.vmware.com/kb/1006427
+# Makes time sync more aggressively in a VM. See
+# http://kb.vmware.com/kb/1006427 for more details.
 sed -i -e \
     '/.*restrict -6.*$/d;/.*restrict ::1$/d;1a\\ntinker panic 0' \
+    /etc/ntp.conf
+
+# Disable the monitoring facility to prevent attacks using ntpdc monlist
+# command when default restrict does not include the noquery flag. See
+# https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2013-5211 for more
+# details.
+sed -i -e \
+    '/tinker panic.*/a disable monitor' \
     /etc/ntp.conf
 
 if [[ $AMAZON_EC2 == 'yes' ]]; then
