@@ -165,14 +165,23 @@ if [[ $AMAZON_EC2 == 'no' ]]; then
     chmod 644 /etc/apt/sources.list
 
     rm -f /var/tmp/vagrant/sources.list.template
-
-    apt-get -y --force-yes update
 else
-    # Allow some grace time for the "cloud-init" to override
-    # the default mirror.
-    sleep 30
-    apt-get -y --force-yes update
+    # Allow some grace time for the "cloud-init" to finish
+    # and to override the default package mirror.
+    for n in {1..30}; do
+        echo "Waiting for cloud-init to finish ..."
+
+        if test -f /var/lib/cloud/instance/boot-finished; then
+            break
+        else
+            # Wait a little longer every time.
+            sleep $(( 1 * $n ))
+        fi
+    done
 fi
+
+# Update everything.
+apt-get -y --force-yes update
 
 export UCF_FORCE_CONFFNEW=1
 ucf --purge /boot/grub/menu.lst
