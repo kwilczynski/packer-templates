@@ -1,7 +1,5 @@
-#!/bin/bash
-
 #
-# reboot.sh
+# Gemfile
 #
 # Copyright 2016 Krzysztof Wilczynski
 #
@@ -18,7 +16,10 @@
 # limitations under the License.
 #
 
-set -e
+source 'https://rubygems.org'
 
-shutdown -r now
-sleep 30
+gem 'rake'
+
+group :test do
+  gem 'serverspec'
+end

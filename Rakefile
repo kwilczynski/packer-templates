@@ -1,7 +1,5 @@
-#!/bin/bash
-
 #
-# reboot.sh
+# Rakefile
 #
 # Copyright 2016 Krzysztof Wilczynski
 #
@@ -18,7 +16,9 @@
 # limitations under the License.
 #
 
-set -e
-
-shutdown -r now
-sleep 30
+begin
+  require 'rake'
+rescue LoadError
+  require 'rubygems'
+  require 'rake'
+end
