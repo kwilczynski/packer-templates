@@ -163,12 +163,15 @@ deb http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
 deb-src http://ppa.launchpad.net/natecarlson/precisebackports/ubuntu precise main
 EOF
 
-    # Fetch Nate Carlson's PPA key from the key server.
-    if [[ ! -f ${COMMON_FILES}/precise-backports.key ]]; then
-        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3DD9F856
-    fi
+    chown root: /etc/apt/sources.list.d/precise-backports.list
+    chmod 644 /etc/apt/sources.list.d/precise-backports.list
 
-    apt-key add ${COMMON_FILES}/precise-backports.key
+    if [[ ! -f ${COMMON_FILES}/precise-backports.key ]]; then
+        # Fetch Nate Carlson's PPA key from the key server.
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3DD9F856
+    else
+        apt-key add ${COMMON_FILES}/precise-backports.key
+    fi
 fi
 
 # By default, the "cloud-init" will override the default mirror when run as

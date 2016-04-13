@@ -38,14 +38,15 @@ chown root: /etc/apt/sources.list.d/docker.list
 chmod 644 /etc/apt/sources.list.d/docker.list
 
 if [[ ! -f ${DOCKER_FILES}/docker.key ]]; then
+    # Fetch Docker's PPA key from the key server.
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 2C52609D
+else
+    apt-key add ${DOCKER_FILES}/docker.key
 fi
-
-apt-key add ${DOCKER_FILES}/docker.key
 
 # Only refresh packages index from Docker's repository.
 apt-get -y --force-yes update \
-    -o Dir::Etc::SourceList='sources.list.d/docker.list' \
+    -o Dir::Etc::SourceList='/etc/apt/sources.list.d/docker.list' \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
 # Dependencies needed by Docker, etc.
