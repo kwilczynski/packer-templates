@@ -64,7 +64,17 @@ PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge.list 2>/dev/null) )
 # Keep these packages when building an Instance Store type image (needed by
 # the Amazon EC2 AMI Tools), and remove otherwise.
 if [[ $AMAZON_EC2 == 'no' ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
-    PACKAGES_TO_PURGE+=( ^libruby[0-9]\. ^ruby[0-9]\. kpartx parted unzip )
+    # Remove Ruby ONLY when any sensible version was not installed, or
+    # when the Itamae Ruby gem (and its dependencies) were not installed.
+    if [[ -z $RUBY_VERSION ]] || [[ -z $ITAMAE_VERSION ]] && \
+          ! ( apt-cache policy | grep -qF 'brightbox' )
+    then
+        PACKAGES_TO_PURGE+=(
+          ^libruby[0-9]\. ^ruby[0-9]\.
+          ^ruby-switch$ ^rubygems-integration$
+        )
+    fi
+    PACKAGES_TO_PURGE+=( kpartx parted unzip )
 fi
 
 for package in "${PACKAGES_TO_PURGE[@]}"; do

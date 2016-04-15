@@ -201,6 +201,10 @@ else
     done
 fi
 
+sed -i -e \
+  's/^Prompt=.*$/Prompt=never/' \
+   /etc/update-manager/release-upgrades
+
 # Update everything.
 apt-get -y --force-yes update
 

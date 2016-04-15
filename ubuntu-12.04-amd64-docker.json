@@ -8,6 +8,10 @@
     "build_number": "{{env `BUILD_NUMBER`}}",
     "docker_version": "{{env `DOCKER_VERSION`}}",
     "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
+    "ruby": "false",
+    "ruby_version": "{{env `RUBY_VERSION`}}",
+    "itamae": "false",
+    "itamae_version": "{{env `ITAMAE_VERSION`}}",
     "chef_client": "false",
     "chef_client_version": "{{env `CHEF_CLIENT_VERSION`}}",
     "awscli_version": "{{env `AWSCLI_VERSION`}}",
@@ -243,6 +247,11 @@
     },
     {
       "type": "file",
+      "source": "files/ruby",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/chef",
       "destination": "/var/tmp"
     },
@@ -286,6 +295,8 @@
         "PACKER_BUILD_VERSION={{user `version`}}",
         "DOCKER_VERSION={{user `docker_version`}}",
         "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
+        "RUBY_VERSION={{user `ruby_version`}}",
+        "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
       "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash '{{ .Path }}'",
@@ -303,6 +314,8 @@
         "scripts/common/networking.sh",
         "scripts/vagrant/guest-additions.sh",
         "scripts/common/python-pip.sh",
+        "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
+        "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
         "scripts/common/docker.sh",
         "scripts/common/sudoers.sh",
@@ -331,6 +344,8 @@
         "SRIOV_DRIVER_VERSION={{user `sriov_driver_version`}}",
         "DOCKER_VERSION={{user `docker_version`}}",
         "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
+        "RUBY_VERSION={{user `ruby_version`}}",
+        "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
       "execute_command": "{{ .Vars }} sudo -H -S -E -n bash '{{ .Path }}'",
@@ -349,6 +364,8 @@
             "scripts/common/networking.sh",
             "scripts/ec2/networking.sh",
             "scripts/common/python-pip.sh",
+            "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
+            "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
             "scripts/common/docker.sh",
             "scripts/common/awscli.sh",
@@ -372,6 +389,8 @@
             "scripts/ec2/networking.sh",
             "scripts/ec2/ec2-ami-tools.sh",
             "scripts/common/python-pip.sh",
+            "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
+            "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
             "scripts/common/docker.sh",
             "scripts/common/awscli.sh",
