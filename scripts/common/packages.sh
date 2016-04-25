@@ -22,6 +22,9 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
@@ -35,14 +38,20 @@ fi
 PACKAGES=(
     ntp haveged irqbalance vim heirloom-mailx
     apt-transport-https software-properties-common
-    python-software-properties wget curl
+    python-software-properties wget curl iptables
 )
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
-service ntp stop || true
+{
+    if [[ $UBUNTU_VERSION == '16.04' ]]; then
+        systemctl stop ntp
+    else
+        service ntp stop
+    fi
+} || true
 
 sed -i -e \
     "s/.*NTPD_OPTS='\(.*\)'/NTPD_OPTS='\1 -4'/g" \

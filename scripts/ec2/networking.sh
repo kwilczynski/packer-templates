@@ -48,7 +48,7 @@ fi
 PACKAGES=( build-essential dkms linux-headers-$(uname -r) )
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
 hash -r

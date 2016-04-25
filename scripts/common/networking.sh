@@ -22,12 +22,25 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
 if ufw status &>/dev/null; then
     ufw disable
-    service ufw stop
+
+    # Make sure to disable the ufw service.
+    {
+        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+            systemctl stop ufw
+            systemctl disable ufw
+        else
+            service ufw stop
+            update-rc.d -f ufw disable
+        fi
+    } || true
 fi
 
 iptables -F
@@ -48,10 +61,10 @@ if ! dpkg -s ethtool &>/dev/null; then
     UPDATE_STAMP='/var/lib/apt/periodic/update-success-stamp'
     if [[ ! -f $UPDATE_STAMP ]] || \
        (( $(date +%s) - $(date -r $UPDATE_STAMP +%s) > 900 )); then
-        apt-get -y --force-yes update
+        apt-get --assume-yes update
     fi
 
-    apt-get -y --force-yes install ethtool
+    apt-get --assume-yes install ethtool
 fi
 
 if [[ -d /etc/network/interfaces.d ]]; then
@@ -61,9 +74,22 @@ iface eth0 inet dhcp
 pre-up sleep 2
 post-up ethtool -K eth0 tso off gso off lro off
 EOF
+
+  chown root: /etc/network/interfaces.d/*
+  chmod 644 /etc/network/interfaces.d/*
+
+  cat <<'EOF' > /etc/network/interfaces
+source /etc/network/interfaces.d/*
+
+auto lo
+iface lo inet loopback
+EOF
 else
     cat <<'EOF' >> /etc/network/interfaces
 pre-up sleep 2
 post-up ethtool -K eth0 tso off gso off lro off
 EOF
 fi
+
+chown root: /etc/network/interfaces
+chmod 644 /etc/network/interfaces

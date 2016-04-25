@@ -22,11 +22,14 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+readonly DOCKER_FILES='/var/tmp/docker'
+
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+readonly UBUNTU_RELEASE=$(lsb_release -sc)
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
-
-readonly DOCKER_FILES='/var/tmp/docker'
-readonly UBUNTU_RELEASE=$(lsb_release -sc)
 
 [[ -d $DOCKER_FILES ]] || mkdir -p $DOCKER_FILES
 
@@ -45,7 +48,7 @@ else
 fi
 
 # Only refresh packages index from Docker's repository.
-apt-get -y --force-yes update \
+apt-get --assume-yes update \
     -o Dir::Etc::SourceList='/etc/apt/sources.list.d/docker.list' \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
@@ -61,10 +64,16 @@ else
 fi
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
-service docker stop || true
+{
+    if [[ $UBUNTU_VERSION == '16.04' ]]; then
+        systemctl stop docker
+    else
+        service docker stop
+    fi
+} || true
 
 if ! getent group docker &>/dev/null; then
     groupadd --system docker
@@ -76,24 +85,29 @@ for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
     fi
 done
 
-chown root: /etc/bash_completion.d/docker
-chmod 644 /etc/bash_completion.d/docker
+# Add Bash shell completion for Docker and Docker Compose.
+for file in docker docker-compose; do
+    REPOSITORY='docker'
+    if [[ $file =~ ^docker-compose$ ]]; then
+      REPOSITORY='compose'
+    fi
+
+    if [[ ! -f ${DOCKER_FILES}/${file} ]]; then
+        wget --no-check-certificate -O ${DOCKER_FILES}/${file} \
+            https://raw.githubusercontent.com/docker/${REPOSITORY}/master/contrib/completion/bash/${file}
+    fi
+
+    cp -f ${DOCKER_FILES}/${file} \
+          /etc/bash_completion.d/${file}
+
+    chown root: /etc/bash_completion.d/${file}
+    chmod 644 /etc/bash_completion.d/${file}
+done
 
 # Disable IPv6 in Docker.
 sed -i -e \
     's/.*DOCKER_OPTS="\(.*\)"/DOCKER_OPTS="\1 --ipv6=false"/g' \
     /etc/default/docker
-
-if [[ ! -f ${DOCKER_FILES}/docker-compose ]]; then
-    wget --no-check-certificate -O ${DOCKER_FILES}/docker-compose \
-        https://raw.githubusercontent.com/docker/compose/master/contrib/completion/bash/docker-compose
-fi
-
-cp -f ${DOCKER_FILES}/docker-compose \
-      /etc/bash_completion.d/docker-compose
-
-chown root: /etc/bash_completion.d/docker-compose
-chmod 644 /etc/bash_completion.d/docker-compose
 
 # We can install the docker-compose pip, but it has to be done
 # under virtualenv as it has specific version requirements on

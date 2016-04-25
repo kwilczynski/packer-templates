@@ -1,11 +1,13 @@
 {
   "variables": {
-    "name": "ubuntu-12.04-amd64",
-    "description": "Ubuntu 12.04 x86_64 (amd64)",
+    "name": "ubuntu-16.04-amd64-docker",
+    "description": "Ubuntu 16.04 x86_64 (amd64) with Docker",
     "version": "0.1.0",
     "releases_mirror": "releases.ubuntu.com",
     "archive_mirror": "archive.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
+    "docker_version": "{{env `DOCKER_VERSION`}}",
+    "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
     "ruby": "false",
     "ruby_version": "{{env `RUBY_VERSION`}}",
     "itamae": "false",
@@ -38,9 +40,16 @@
       "headless": "{{user `headless`}}",
       "vm_name": "packer_{{user `name`}}",
       "boot_command": [
-        "<esc><wait>",
-        "<esc><wait>",
-        "<enter><wait>",
+        "<enter><wait><f6><esc>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
         "/install/vmlinuz<wait>",
         " auto<wait>",
         " console-setup/ask_detect=false<wait>",
@@ -59,7 +68,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
+        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-16.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -68,10 +77,10 @@
       "guest_additions_path": "VBoxGuestAdditions_{{ .Version }}.iso",
       "guest_os_type": "Ubuntu_64",
       "http_directory": "http",
-      "iso_checksum": "af224223de99e2a730b67d7785b657f549be0d63221188e105445f75fb8305c9",
+      "iso_checksum": "b8b172cbdf04f5ff8adc8c2c1b4007ccf66f00fc6a324a6da6eba67de71746f6",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/16.04/ubuntu-16.04-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -120,9 +129,16 @@
       "headless": "{{user `headless`}}",
       "vm_name": "packer_{{user `name`}}",
       "boot_command": [
-        "<esc><wait>",
-        "<esc><wait>",
-        "<enter><wait>",
+        "<enter><wait><f6><esc>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
         "/install/vmlinuz<wait>",
         " auto<wait>",
         " console-setup/ask_detect=false<wait>",
@@ -141,7 +157,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
+        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-16.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -150,10 +166,10 @@
       "skip_compaction": true,
       "guest_os_type": "ubuntu-64",
       "http_directory": "http",
-      "iso_checksum": "af224223de99e2a730b67d7785b657f549be0d63221188e105445f75fb8305c9",
+      "iso_checksum": "b8b172cbdf04f5ff8adc8c2c1b4007ccf66f00fc6a324a6da6eba67de71746f6",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/16.04/ubuntu-16.04-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -242,6 +258,11 @@
     },
     {
       "type": "file",
+      "source": "files/docker",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/ruby",
       "destination": "/var/tmp"
     },
@@ -288,6 +309,8 @@
         "PACKER_BUILD_NAME={{user `name`}}",
         "PACKER_BUILD_TIMESTAMP={{timestamp}}",
         "PACKER_BUILD_VERSION={{user `version`}}",
+        "DOCKER_VERSION={{user `docker_version`}}",
+        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
         "RUBY_VERSION={{user `ruby_version`}}",
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
@@ -310,6 +333,7 @@
         "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
+        "scripts/common/docker.sh",
         "scripts/common/sudoers.sh",
         "scripts/vagrant/grub.sh",
         "scripts/common/clean-up.sh",
@@ -334,6 +358,8 @@
         "EC2_AMI_TOOLS_VERSION={{user `ec2_ami_tools_version`}}",
         "AWS_CFN_BOOTSTRAP_VERSION={{user `aws_cfn_bootstrap_version`}}",
         "SRIOV_DRIVER_VERSION={{user `sriov_driver_version`}}",
+        "DOCKER_VERSION={{user `docker_version`}}",
+        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
         "RUBY_VERSION={{user `ruby_version`}}",
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
@@ -357,6 +383,7 @@
             "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
+            "scripts/common/docker.sh",
             "scripts/common/awscli.sh",
             "scripts/ec2/aws-cfn-bootstrap.sh",
             "scripts/common/clean-up.sh",
@@ -381,6 +408,7 @@
             "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
+            "scripts/common/docker.sh",
             "scripts/common/awscli.sh",
             "scripts/ec2/aws-cfn-bootstrap.sh",
             "scripts/common/clean-up.sh",

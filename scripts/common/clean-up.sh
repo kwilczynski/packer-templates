@@ -22,10 +22,13 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+readonly COMMON_FILES='/var/tmp/common'
+
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
-
-readonly COMMON_FILES='/var/tmp/common'
 
 # This is only applicable when building Amazon EC2 image (AMI).
 AMAZON_EC2='no'
@@ -34,7 +37,13 @@ if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/nu
 fi
 
 for service in syslog syslog-ng rsyslog; do
-    service $service stop || true
+    {
+        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+            systemctl stop $service
+        else
+            service $service stop
+        fi
+    } || true
 done
 
 logrotate -f /etc/logrotate.conf || true
@@ -43,20 +52,20 @@ logrotate -f /etc/logrotate.conf || true
 # packages were uninstalled (often unused files are left on
 # the file system).
 dpkg -l | grep '^rc' | awk '{ print $2 }' | \
-    xargs apt-get -y --force-yes purge
+    xargs apt-get --assume-yes purge
 
 # Remove not really needed Kernel source packages.
 dpkg -l | awk '{ print $2 }' | grep -E 'linux-(source|headers)-[0-9]+' | \
     grep -v "$(uname -r | sed -e 's/\-generic//;s/\-lowlatency//')" | \
-    xargs apt-get -y --force-yes purge
+    xargs apt-get --assume-yes purge
 
 # Remove old Kernel images that are not the current one.
 dpkg -l | awk '{ print $2 }' | grep -E 'linux-image-.*-generic' | \
-    grep -v $(uname -r) | xargs apt-get -y --force-yes purge
+    grep -v $(uname -r) | xargs apt-get --assume-yes purge
 
 # Remove old Kernel images that are not the current one.
 dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | grep -vE '(libc|gcc)' | \
-    xargs apt-get -y --force-yes purge
+    xargs apt-get --assume-yes purge
 
 # A list of packages to be purged.
 PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge.list 2>/dev/null) )
@@ -77,12 +86,17 @@ if [[ $AMAZON_EC2 == 'no' ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     PACKAGES_TO_PURGE+=( kpartx parted unzip )
 fi
 
+if [[ $AMAZON_EC2 == 'yes' ]]; then
+  # Remove packages that are definitely not needed in EC2 ...
+  PACKAGES_TO_PURGE+=( ^wireless-* crda linux-firmware iw )
+fi
+
 for package in "${PACKAGES_TO_PURGE[@]}"; do
-    apt-get -y --force-yes purge $package || true
+    apt-get --assume-yes purge $package || true
 done
 
 for option in '--purge autoremove' 'autoclean' 'clean all'; do
-    apt-get -y --force-yes $option
+    apt-get --assume-yes $option
 done
 
 # Keep the "tty1" virtual terminal to allow access in a case
@@ -107,8 +121,15 @@ for file in /etc/init/hwclock*.conf; do
 done
 
 # No need to automatically adjust the CPU scheduler.
-service ondemand stop
-update-rc.d -f ondemand disable
+{
+    if [[ $UBUNTU_VERSION == '16.04' ]]; then
+        systemctl stop ondemand
+        systemctl disable ondemand
+    else
+        service ondemand stop
+        update-rc.d -f ondemand disable
+    fi
+} || true
 
 # Disabled for now, as it breaks the "initscripts" package post-install job.
 # dpkg-divert --rename /etc/init.d/ondemand
@@ -213,15 +234,24 @@ rm -rf /var/lib/cloud/data/scripts \
        /var/lib/cloud/scripts/per-instance \
        /var/lib/cloud/data/user-data*
 
-# Prevent storing of the MAC address as part of the
-# network interface details saved by udev.
-rm -f /etc/udev/rules.d/{z25,70}-persistent-net.rules \
-      /lib/udev/rules.d/75-persistent-net-generator.rules
+# Prevent storing of the MAC address as part of the network
+# interface details saved by systemd/udev, and disable support
+# for the Predictable (or "consistent") Network Interface Names.
+UDEV_RULES=(
+  70-persistent-net.rules 75-persistent-net-generator.rules
+  80-net-setup-link.rules 80-net-name-slot.rules
+)
 
-mkdir /etc/udev/rules.d/{z25,70}-persistent-net.rules
+for rule in "${UDEV_RULES[@]}"; do
+  rm -f /etc/udev/rules.d/${rule}
+  ln -sf /dev/null /etc/udev/rules.d/${rule}
+done
 
-chown root: /etc/udev/rules.d/{z25,70}-persistent-net.rules
-chmod 755 /etc/udev/rules.d/{z25,70}-persistent-net.rules
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+  # Override systemd configuration ...
+  rm -f /etc/systemd/network/99-default.link
+  ln -sf /dev/null /etc/systemd/network/99-default.link
+fi
 
 rm -rf /dev/.udev \
        /var/lib/{dhcp,dhcp3}/* \

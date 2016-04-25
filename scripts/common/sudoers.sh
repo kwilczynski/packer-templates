@@ -22,9 +22,6 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-# Get the major release version only.
-readonly UBUNTU_MAJOR_VERSION=$(lsb_release -r | awk '{ print $2 }' | cut -d . -f 1)
-
 sed -i -e \
     's/^\(.*env_keep = \"\)/\1PATH /' \
     /etc/sudoers

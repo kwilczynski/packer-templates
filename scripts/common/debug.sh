@@ -22,6 +22,9 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 uname -a
 printf "\n"
 
@@ -56,8 +59,15 @@ for file in ${FILES[@]}; do
   fi
 done
 
-printf "\n"
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+  printf "\n"
+  {
+    systemctl status
+    journalctl -xe
+  } | tee
+fi
 
+printf "\n"
 if [[ -f /var/log/secure ]]; then
   tail -100 /var/log/secure
 fi

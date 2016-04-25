@@ -29,20 +29,20 @@ export DEBCONF_NONINTERACTIVE_SEEN=true
 UPDATE_STAMP='/var/lib/apt/periodic/update-success-stamp'
 if [[ ! -f $UPDATE_STAMP ]] || \
    (( $(date +%s) - $(date -r $UPDATE_STAMP +%s) > 900 )); then
-    apt-get -y --force-yes update
+    apt-get --assume-yes update
 fi
 
 # Dependencies needed by a lot of Python eggs.
 PACKAGES=( python-dev libffi-dev libssl-dev libyaml-dev )
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
-apt-get -y --force-yes install python-setuptools
+apt-get --assume-yes install python-setuptools
 
 # Remove current and rather old version.
-apt-get -y --force-yes purge python-pip
+apt-get --assume-yes purge python-pip
 
 easy_install pip
 pip install --upgrade pip
@@ -58,7 +58,7 @@ hash -r
 # Remove old version that was only needed to bootstrap
 # ourselves.  We prefer more up-to-date one installed
 # directly via Python's pip.
-apt-get -y --force-yes purge python-setuptools
+apt-get --assume-yes purge python-setuptools
 
 pip install --upgrade setuptools
 pip install --upgrade virtualenv

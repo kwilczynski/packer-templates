@@ -22,12 +22,14 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
-
+# Get details about the Ubuntu release ...
 readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 readonly HOSTNAME="ubuntu$(echo $UBUNTU_VERSION | tr -d '.')"
 readonly FQDN="${HOSTNAME}.localdomain"
+
+export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
+export DEBCONF_NONINTERACTIVE_SEEN=true
 
 (
     cat <<EOF
@@ -98,9 +100,14 @@ echo $FQDN > /etc/mailname
 chown root: /etc/mailname
 chmod 644 /etc/mailname
 
-apt-get -y --force-yes install postfix
+apt-get --assume-yes install postfix
 
-service postfix stop
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+  systemctl stop postfix
+else
+  service postfix stop
+fi
+
 dpkg-reconfigure postfix
 
 sed -i -e \
@@ -123,5 +130,10 @@ sed -i -e \
 
 newaliases
 
-service postfix restart
-service postfix stop
+for action in restart stop; do
+  if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    systemctl $action postfix
+  else
+    service postfix $action
+  fi
+done

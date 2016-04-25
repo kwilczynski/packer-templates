@@ -22,16 +22,14 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
+readonly COMMON_FILES='/var/tmp/common'
 
+# Get details about the Ubuntu release ...
 readonly UBUNTU_RELEASE=$(lsb_release -sc)
 readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 
-# Get the major release version only.
-readonly UBUNTU_MAJOR_VERSION=$(lsb_release -r | awk '{ print $2 }' | cut -d . -f 1)
-
-readonly COMMON_FILES='/var/tmp/common'
+export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
+export DEBCONF_NONINTERACTIVE_SEEN=true
 
 # This is only applicable when building Amazon EC2 image (AMI).
 AMAZON_EC2='no'
@@ -151,7 +149,7 @@ chown root: /etc/apt/apt.conf.d/99dpkg
 chmod 644 /etc/apt/apt.conf.d/99dpkg
 
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    apt-get -y --force-yes clean all
+    apt-get --assume-yes clean all
     rm -rf /var/lib/apt/lists
 fi
 
@@ -201,37 +199,45 @@ else
     done
 fi
 
-sed -i -e \
-  's/^Prompt=.*$/Prompt=never/' \
-   /etc/update-manager/release-upgrades
+if [[ -f /etc/update-manager/release-upgrades ]]; then
+  sed -i -e \
+    's/^Prompt=.*$/Prompt=never/' \
+     /etc/update-manager/release-upgrades
+fi
 
 # Update everything.
-apt-get -y --force-yes update
+apt-get --assume-yes update
 
 export UCF_FORCE_CONFFNEW=1
 ucf --purge /boot/grub/menu.lst
 
-apt-get -y --force-yes dist-upgrade
-
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    apt-get -y --force-yes install libreadline-dev dpkg
+    apt-get --assume-yes install libreadline-dev dpkg
 fi
 
-UBUNTU_BACKPORT='wily'
-if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    UBUNTU_BACKPORT='trusty'
+# Only install back-ported Kernel on 12.04 and 14.04 ...
+if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+    # Make sure to select the right release.
+    UBUNTU_BACKPORT='xenial'
+    if [[ $UBUNTU_VERSION == '12.04' ]]; then
+        UBUNTU_BACKPORT='trusty'
+    fi
+
+    # Upgrade to latest available back-ported Kernel version.
+    for package in '' 'image' 'headers'; do
+        PACKAGE_NAME=$(echo \
+                "linux-${package}-generic-lts-${UBUNTU_BACKPORT}" | \
+                    sed -e 's/\-\+/\-/')
+
+        apt-get --assume-yes install $PACKAGE_NAME
+    done
+else
+    # Add necessary depenencies.
+    apt-get --assume-yes install linux-headers-$(uname -r)
 fi
 
-# Upgrade to latest available back-ported Kernel version.
-for package in '' 'image' 'headers'; do
-    PACKAGE_NAME=$(echo \
-            "linux-${package}-generic-lts-${UBUNTU_BACKPORT}" | \
-                sed -e 's/\-\+/\-/')
-
-    apt-get -y --force-yes install $PACKAGE_NAME
-done
-
-apt-get -y --force-yes install linux-headers-$(uname -r)
+# Update everything ...
+apt-get --assume-yes dist-upgrade
 
 cat <<'EOF' > /etc/timezone
 Etc/UTC
@@ -243,7 +249,7 @@ chmod 644 /etc/timezone
 dpkg-reconfigure tzdata
 
 # This package is needed to suppprt English localisation correctly.
-apt-get -y --force-yes install language-pack-en 1> /dev/null
+apt-get --assume-yes install language-pack-en 1> /dev/null
 
 # Remove current version ...
 rm -f /usr/lib/locale/locale-archive
@@ -302,7 +308,7 @@ chmod 644 /etc/resolvconf/resolv.conf.d/tail
 
 resolvconf -u
 
-apt-get -y --force-yes install libnss-myhostname
+apt-get --assume-yes install libnss-myhostname
 
 cat <<'EOF' > /etc/nsswitch.conf
 passwd:         compat
@@ -398,7 +404,7 @@ sed -i -e \
     /etc/modules
 
 for package in procps sysfsutils; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
 for directory in /etc/sysctl.d /etc/sysfs.d; do
@@ -514,7 +520,11 @@ chown -R root: /etc/sysctl.conf \
 chmod -R 644 /etc/sysctl.conf \
              /etc/sysctl.d
 
-service procps start
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+  systemctl start procps
+else
+  service procps start
+fi
 
 cat <<'EOF' > /etc/sysfs.d/clock_source.conf
 devices/system/clocksource/clocksource0/current_clocksource = tsc
@@ -559,7 +569,11 @@ chown -R root: /etc/sysfs.conf \
 chmod -R 644 /etc/sysfs.conf \
              /etc/sysfs.d
 
-service sysfsutils restart
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+  systemctl restart sysfsutils
+else
+  service sysfsutils restart
+fi
 
 # The "/dev/shm" is going to be a symbolic link to "/run/shm" on
 # both the Ubuntu 12.04 and 14.04, and most likely onwards.

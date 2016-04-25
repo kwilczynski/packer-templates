@@ -1,20 +1,20 @@
 # See http://help.ubuntu.com/community/UpgradeNotes for how to upgrade to
 # newer versions of the distribution.
 deb $ARCHIVE_MIRROR $UBUNTU_RELEASE main restricted
-deb-src $ARCHIVE_MIRROR $UBUNTU_RELEASE main restricted
+# deb-src $ARCHIVE_MIRROR $UBUNTU_RELEASE main restricted
 
 ## Major bug fix updates produced after the final release of the
 ## distribution.
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates main restricted
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates main restricted
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates main restricted
 
 ## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
 ## team. Also, please note that software in universe WILL NOT receive any
 ## review or updates from the Ubuntu security team.
 deb $ARCHIVE_MIRROR $UBUNTU_RELEASE universe
-deb-src $ARCHIVE_MIRROR $UBUNTU_RELEASE universe
+# deb-src $ARCHIVE_MIRROR $UBUNTU_RELEASE universe
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates universe
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates universe
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates universe
 
 ## N.B. software from this repository is ENTIRELY UNSUPPORTED by the Ubuntu
 ## team, and may not be under a free licence. Please satisfy yourself as to
@@ -22,9 +22,9 @@ deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates universe
 ## multiverse WILL NOT receive any review or updates from the Ubuntu
 ## security team.
 deb $ARCHIVE_MIRROR $UBUNTU_RELEASE multiverse
-deb-src $ARCHIVE_MIRROR $UBUNTU_RELEASE multiverse
+# deb-src $ARCHIVE_MIRROR $UBUNTU_RELEASE multiverse
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates multiverse
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates multiverse
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates multiverse
 
 ## N.B. software from this repository may not have been tested as
 ## extensively as that contained in the main release, although it includes
@@ -32,14 +32,14 @@ deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-updates multiverse
 ## Also, please note that software in backports WILL NOT receive any review
 ## or updates from the Ubuntu security team.
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-backports main restricted universe multiverse
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-backports main restricted universe multiverse
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-backports main restricted universe multiverse
 
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security main restricted
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security main restricted
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security main restricted
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security universe
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security universe
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security universe
 deb $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security multiverse
-deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security multiverse
+# deb-src $ARCHIVE_MIRROR ${UBUNTU_RELEASE}-security multiverse
 
 ## Uncomment the following two lines to add software from Canonical's
 ## 'partner' repository.

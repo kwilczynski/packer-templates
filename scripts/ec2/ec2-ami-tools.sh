@@ -43,7 +43,7 @@ fi
 PACKAGES=( grub parted kpartx unzip rsync ruby1.9.3 )
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
 hash -r

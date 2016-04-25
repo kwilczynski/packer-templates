@@ -24,6 +24,9 @@ export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 readonly VMWARE_FILES='/var/tmp/vmware'
 
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 # As Packer will upload guest additions to the home directory of the same
 # user as the one used for connecting via SSH, we need to check which user
 # is it this time.
@@ -53,6 +56,34 @@ case "$PACKER_BUILDER_TYPE" in
 
         rm -rf /home/${SYSTEM_USER}/.{vbox,virtualbox}_version \
                /tmp/virtualbox
+
+        # Disable the X11 support and automatic driver compilation.
+        for service in vboxadd vboxadd-x11; do
+            {
+                if [[ $UBUNTU_VERSION == '16.04' ]]; then
+                    systemctl stop $service;
+                    systemctl disable $service;
+                else
+                    service $service stop;
+                    update-rc.d -f $service disable;
+                fi
+            } || true
+        done
+
+        # Make sure that drivers are loaded on boot.
+        {
+          echo "$(cat /etc/modules | grep -vE '^#')";
+          echo "vboxsf";
+          echo "vboxguest";
+        } | sed -e '/^$/d' > /etc/modules
+
+        chmod 644 /etc/modules
+        chown root: /etc/modules
+
+        # Make sure that the symbolic link is in place...
+        if [[ -d /etc/modules-load.d ]]; then
+            ln -sf ../modules /etc/modules-load.d/modules.conf
+        fi
     ;;
 
     vmware-iso|vmware-vmx)

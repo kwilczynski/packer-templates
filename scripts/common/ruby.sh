@@ -22,11 +22,13 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+readonly RUBY_FILES='/var/tmp/ruby'
+
+# Get details about the Ubuntu release ...
+readonly UBUNTU_RELEASE=$(lsb_release -sc)
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
-
-readonly RUBY_FILES='/var/tmp/ruby'
-readonly UBUNTU_RELEASE=$(lsb_release -sc)
 
 [[ -d $RUBY_FILES ]] || mkdir -p $RUBY_FILES
 
@@ -46,7 +48,7 @@ else
 fi
 
 # Only refresh packages index from Brightbox's repository.
-apt-get -y --force-yes update \
+apt-get --assume-yes update \
     -o Dir::Etc::SourceList='/etc/apt/sources.list.d/brightbox-ruby.list' \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
@@ -61,7 +63,7 @@ else
 fi
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
 # Update RubyGems release to the latest one.

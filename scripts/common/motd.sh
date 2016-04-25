@@ -22,16 +22,17 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
-
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 
 # Dependencies needed by Landscape.
 PACKAGES=( python-twisted-core python-configobj landscape-common )
 
 for package in "${PACKAGES[@]}"; do
-    apt-get -y --force-yes install $package
+    apt-get --assume-yes install $package
 done
 
 # Remove the warranty information.
@@ -58,8 +59,15 @@ chown root: /etc/landscape/client.conf
 chmod 644 /etc/landscape/client.conf
 
 if [[ -f /etc/init.d/landscape-client ]]; then
-    service landscape-client stop &>/dev/null || true
-    update-rc.d landscape-client disable
+    {
+        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+            systemctl stop landscape-client
+            systemctl disable landscape-client
+        else
+          service landscape-client stop
+          update-rc.d -f landscape-client disable
+        fi
+    } || true
 fi
 
 cat <<'EOF' > /etc/update-motd.d/99-footer
