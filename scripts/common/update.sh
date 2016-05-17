@@ -37,7 +37,7 @@ if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/nu
     AMAZON_EC2='yes'
 fi
 
-cat <<'EOF' > /etc/apt/apt.conf.d/00trustcdrom
+cat <<'EOF' > /etc/apt/apt.conf.d/00trust-cdrom
 APT
 {
     Authentication
@@ -47,8 +47,22 @@ APT
 };
 EOF
 
-chown root: /etc/apt/apt.conf.d/00trustcdrom
-chmod 644 /etc/apt/apt.conf.d/00trustcdrom
+chown root: /etc/apt/apt.conf.d/00trust-cdrom
+chmod 644 /etc/apt/apt.conf.d/00trust-cdrom
+
+cat <<'EOF' > /etc/apt/apt.conf.d/10cache
+Dir
+{
+    Cache
+    {
+        pkgcache "";
+        srcpkgcache "";
+    };
+};
+EOF
+
+chown root: /etc/apt/apt.conf.d/10cache
+chmod 644 /etc/apt/apt.conf.d/10cache
 
 cat <<'EOF' > /etc/apt/apt.conf.d/15update-stamp
 APT
@@ -147,6 +161,26 @@ EOF
 
 chown root: /etc/apt/apt.conf.d/99dpkg
 chmod 644 /etc/apt/apt.conf.d/99dpkg
+
+cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/00exclude-documentation
+path-exclude /usr/share/doc/*
+path-exclude /usr/share/man/*
+path-exclude /usr/share/info/*
+path-exclude /usr/share/groff/*
+path-exclude /usr/share/lintian/*
+path-exclude /usr/share/linda/*
+EOF
+
+chown root: /etc/dpkg/dpkg.cfg.d/00exclude-documentation
+chmod 644 /etc/dpkg/dpkg.cfg.d/00exclude-documentation
+
+cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/00locales
+path-exclude /usr/share/locale/*
+path-include /usr/share/locale/en*
+EOF
+
+chown root: /etc/dpkg/dpkg.cfg.d/00locales
+chmod 644 /etc/dpkg/dpkg.cfg.d/00locales
 
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get --assume-yes clean all
