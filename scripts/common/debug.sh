@@ -54,22 +54,22 @@ printf "\n"
 
 FILES=( syslog messages )
 for file in ${FILES[@]}; do
-  if [[ -f /var/log/${file} ]]; then
-    tail -100 /var/log/${file}
-  fi
+    if [[ -f /var/log/${file} ]]; then
+        tail -100 /var/log/${file}
+    fi
 done
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
-  printf "\n"
-  {
-    systemctl status
-    journalctl -xe
-  } | tee
+    printf "\n"
+    {
+      systemctl status
+      journalctl -xe
+    } | tee
 fi
 
 printf "\n"
 if [[ -f /var/log/secure ]]; then
-  tail -100 /var/log/secure
+    tail -100 /var/log/secure
 fi
 
 sleep 60

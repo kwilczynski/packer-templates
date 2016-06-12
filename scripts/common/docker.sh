@@ -195,12 +195,12 @@ grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
 # This would normally be on a separate volume,
 # and most likely formatted to use "btrfs".
 for directory in /srv/docker /var/lib/docker; do
-  [[ -d $directory ]] || mkdir -p $directory
+    [[ -d $directory ]] || mkdir -p $directory
 
-  rm -rf ${directory}/*
+    rm -rf ${directory}/*
 
-  chown root: $directory
-  chmod 755 $directory
+    chown root: $directory
+    chmod 755 $directory
 done
 
 # A bind-mount for the Docker root directory.

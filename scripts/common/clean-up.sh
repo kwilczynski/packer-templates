@@ -186,7 +186,7 @@ rm -rf /etc/lvm/cache/.cache
 
 # Clean if there are any Python software installed there.
 if ls /opt/*/share &>/dev/null; then
-  find /opt/*/share -type d -name 'man' -o -name 'doc' -exec rm -rf '{}' \;
+    find /opt/*/share -type d -name 'man' -o -name 'doc' -exec rm -rf '{}' \;
 fi
 
 if [[ $AMAZON_EC2 == 'no' ]]; then
@@ -238,19 +238,19 @@ rm -rf /var/lib/cloud/data/scripts \
 # interface details saved by systemd/udev, and disable support
 # for the Predictable (or "consistent") Network Interface Names.
 UDEV_RULES=(
-  70-persistent-net.rules 75-persistent-net-generator.rules
-  80-net-setup-link.rules 80-net-name-slot.rules
+    70-persistent-net.rules 75-persistent-net-generator.rules
+    80-net-setup-link.rules 80-net-name-slot.rules
 )
 
 for rule in "${UDEV_RULES[@]}"; do
-  rm -f /etc/udev/rules.d/${rule}
-  ln -sf /dev/null /etc/udev/rules.d/${rule}
+    rm -f /etc/udev/rules.d/${rule}
+    ln -sf /dev/null /etc/udev/rules.d/${rule}
 done
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
-  # Override systemd configuration ...
-  rm -f /etc/systemd/network/99-default.link
-  ln -sf /dev/null /etc/systemd/network/99-default.link
+    # Override systemd configuration ...
+    rm -f /etc/systemd/network/99-default.link
+    ln -sf /dev/null /etc/systemd/network/99-default.link
 fi
 
 rm -rf /dev/.udev \

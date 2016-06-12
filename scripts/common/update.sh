@@ -283,7 +283,7 @@ chmod 644 /etc/timezone
 dpkg-reconfigure tzdata
 
 # This package is needed to suppprt English localisation correctly.
-apt-get --assume-yes install language-pack-en 1> /dev/null
+apt-get --assume-yes install language-pack-en
 
 # Remove current version ...
 rm -f /usr/lib/locale/locale-archive
@@ -555,9 +555,9 @@ chmod -R 644 /etc/sysctl.conf \
              /etc/sysctl.d
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
-  systemctl start procps
+    systemctl start procps
 else
-  service procps start
+    service procps start
 fi
 
 cat <<'EOF' > /etc/sysfs.d/clock_source.conf
@@ -604,9 +604,9 @@ chmod -R 644 /etc/sysfs.conf \
              /etc/sysfs.d
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
-  systemctl restart sysfsutils
+    systemctl restart sysfsutils
 else
-  service sysfsutils restart
+    service sysfsutils restart
 fi
 
 # The "/dev/shm" is going to be a symbolic link to "/run/shm" on
