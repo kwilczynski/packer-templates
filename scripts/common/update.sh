@@ -319,7 +319,7 @@ touch /etc/resolvconf/resolv.conf.d/head
 chown root: /etc/resolvconf/resolv.conf.d/head
 chmod 644 /etc/resolvconf/resolv.conf.d/head
 
-NAME_SERVERS=( 8.8.8.8 8.8.4.4 )
+NAME_SERVERS=( 8.8.8.8 4.2.2.2 )
 if [[ $AMAZON_EC2 == 'yes' ]]; then
     NAME_SERVERS=()
 fi
