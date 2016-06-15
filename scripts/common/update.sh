@@ -552,13 +552,17 @@ chown -R root: /etc/sysctl.conf \
                /etc/sysctl.d
 
 chmod -R 644 /etc/sysctl.conf \
-             /etc/sysctl.d
+             /etc/sysctl.d/*
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     systemctl start procps
 else
     service procps start
 fi
+
+[[ -d /etc/sysfs.d ]] || mkdir -p /etc/sysfs.d
+chown root: /etc/sysfs.d
+chmod 755 /etc/sysfs.d
 
 cat <<'EOF' > /etc/sysfs.d/clock_source.conf
 devices/system/clocksource/clocksource0/current_clocksource = tsc
@@ -568,7 +572,7 @@ EOF
 # accordingly when using Receive Packet Steering (RPS)
 # functionality (setting the "rps_flow_cnt" accordingly).
 for nic in $(ls -1 /sys/class/net | grep -E 'eth*' 2>/dev/null | sort); do
-    cat <<EOF > /etc/sysfs.d/network.conf
+    cat <<EOF | tee -a /etc/sysfs.d/network.conf >/dev/null
 class/net/${nic}/tx_queue_len = 5000
 class/net/${nic}/queues/rx-0/rps_cpus = f
 class/net/${nic}/queues/tx-0/xps_cpus = f
@@ -576,13 +580,19 @@ class/net/${nic}/queues/rx-0/rps_flow_cnt = 32768
 EOF
 done
 
-for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); do
-    SCHEDULER="block/${block}/queue/scheduler = noop"
-    if [[ $block =~ ^dm.*$ ]]; then
-        SCHEDULER=''
-    fi
+# Do not add this file when running on EC2 instance, as often when
+# the instance is started the device name can be either "/dev/sda"
+# or "/dev/xvda" and there is reliable no way to know which one
+# is it going to be. Also, probably not an most ideal thing to do
+# on EC2, since the storage type may vay significantly.
+if [[ $AMAZON_EC2 == 'no' ]]; then
+    for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); do
+        SCHEDULER="block/${block}/queue/scheduler = noop"
+        if [[ $block =~ ^dm.*$ ]]; then
+            SCHEDULER=''
+        fi
 
-    cat <<EOF | sed -e '/^$/d' > /etc/sysfs.d/disk.conf
+        cat <<EOF | sed -e '/^$/d' | tee -a /etc/sysfs.d/disk.conf >/dev/null
 block/${block}/queue/add_random = 0
 block/${block}/queue/rq_affinity = 2
 block/${block}/queue/read_ahead_kb = 256
@@ -590,7 +600,8 @@ block/${block}/queue/nr_requests = 256
 block/${block}/queue/rotational = 0
 ${SCHEDULER}
 EOF
-done
+    done
+fi
 
 cat <<'EOF' > /etc/sysfs.d/transparent_hugepage.conf
 kernel/mm/transparent_hugepage/enabled = never
@@ -601,7 +612,7 @@ chown -R root: /etc/sysfs.conf \
                /etc/sysfs.d
 
 chmod -R 644 /etc/sysfs.conf \
-             /etc/sysfs.d
+             /etc/sysfs.d/*
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     systemctl restart sysfsutils

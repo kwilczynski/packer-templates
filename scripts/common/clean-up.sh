@@ -79,8 +79,10 @@ if [[ $AMAZON_EC2 == 'no' ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
           ! ( apt-cache policy | grep -qF 'brightbox' )
     then
         PACKAGES_TO_PURGE+=(
-          ^libruby[0-9]\. ^ruby[0-9]\.
-          ^ruby-switch$ ^rubygems-integration$
+          ^libruby[0-9]\.
+          ^ruby[0-9]\.
+          ^ruby-switch$
+          ^rubygems-integration$
         )
     fi
     PACKAGES_TO_PURGE+=( kpartx parted unzip )
@@ -88,7 +90,12 @@ fi
 
 if [[ $AMAZON_EC2 == 'yes' ]]; then
   # Remove packages that are definitely not needed in EC2 ...
-  PACKAGES_TO_PURGE+=( ^wireless-* crda linux-firmware iw )
+  PACKAGES_TO_PURGE+=( ^wireless-* crda iw linux-firmware mdadm open-iscsi )
+fi
+
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+  # Remove LXD and LXCFS as Docker will be installed.
+  PACKAGES_TO_PURGE+=( lxd lxcfs )
 fi
 
 for package in "${PACKAGES_TO_PURGE[@]}"; do
@@ -217,6 +224,13 @@ sed -i -e \
     '/^.\+fd0/d;/^.\*floppy0/d' \
     /etc/fstab
 
+# Remove entry for "/mnt" from /etc/fstab,
+# we do not want any extra volume (if
+# available) to be mounted automatically.
+sed -i -e \
+    '/^.\+\/mnt/d;/^.\*\/mnt/d' \
+    /etc/fstab
+
 sed -i -e \
     '/^#/!s/\s\+/\t/g' \
     /etc/fstab
@@ -226,7 +240,8 @@ rm -rf /var/lib/ubuntu-release-upgrader \
        /var/lib/update-manager \
        /var/lib/man-db \
        /var/lib/apt-xapian-index \
-       /var/lib/ntp/ntp.drift
+       /var/lib/ntp/ntp.drift \
+       /var/lib/{lxd,lxcfs}
 
 rm -rf /lib/recovery-mode
 
@@ -238,8 +253,10 @@ rm -rf /var/lib/cloud/data/scripts \
 # interface details saved by systemd/udev, and disable support
 # for the Predictable (or "consistent") Network Interface Names.
 UDEV_RULES=(
-    70-persistent-net.rules 75-persistent-net-generator.rules
-    80-net-setup-link.rules 80-net-name-slot.rules
+    70-persistent-net.rules
+    75-persistent-net-generator.rules
+    80-net-setup-link.rules
+    80-net-name-slot.rules
 )
 
 for rule in "${UDEV_RULES[@]}"; do
@@ -256,6 +273,14 @@ fi
 rm -rf /dev/.udev \
        /var/lib/{dhcp,dhcp3}/* \
        /var/lib/dhclient/*
+
+if [[ $AMAZON_EC2 == 'yes' ]]; then
+    # Get rid of this file, alas clout-init will probably
+    # create it again automatically so that it can wreck
+    # network configuration.
+    rm -f /etc/network/interfaces.d/50-cloud-init.cfg
+    ln -sf /dev/null /etc/network/interfaces.d/50-cloud-init.cfg
+fi
 
 # Remove surplus locale (and only retain the English one).
 mkdir -p /tmp/locale
