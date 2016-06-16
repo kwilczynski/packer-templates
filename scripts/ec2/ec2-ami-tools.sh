@@ -22,6 +22,9 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+# Get details about the Ubuntu release ...
+readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+
 export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
 export DEBCONF_NONINTERACTIVE_SEEN=true
 
@@ -40,11 +43,22 @@ if [[ ! -f ${EC2_FILES}/${EC2_AMI_TOOLS} ]]; then
 fi
 
 # Dependencies needed by the Amazon EC2 AMI Tools.
-PACKAGES=( grub parted kpartx unzip rsync ruby1.9.3 )
+PACKAGES=( grub parted kpartx unzip rsync )
+
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    PACKAGES+=( ruby2.3 )
+else
+    PACKAGES+=( ruby1.9.3 )
+fi
 
 for package in "${PACKAGES[@]}"; do
     apt-get --assume-yes install $package
 done
+
+if [[ -x /usr/bin/ruby2.3 ]]; then
+    # Make sure that Ruby is available as "ruby", given the PATH set corretly.
+    update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby2.3 50
+fi
 
 hash -r
 
