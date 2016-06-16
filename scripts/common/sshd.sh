@@ -27,7 +27,7 @@ join() {
 
 # This is only applicable when building Amazon EC2 image (AMI).
 AMAZON_EC2='no'
-if wget -q --timeout 1 --tries 2 --wait 1 -O - http://169.254.169.254/ &>/dev/null; then
+if wget -q --timeout 1 --wait 1 ---tries 2 --spider http://169.254.169.254/ &>/dev/null; then
     AMAZON_EC2='yes'
 fi
 
@@ -92,15 +92,15 @@ yes | ssh-keygen -t rsa -b 4096 -N '' \
 
 # Generate new moduli file to remove weak Diffie-Hellman Parameter
 # set and to prevent the Logjam attack, see: https://weakdh.org/.
-if curl -s -k -I https://2ton.com.au >/dev/null; then
+if wget --timeout 1 --wait 1 --tries 2 --spider https://2ton.com.au/ &>/dev/null; then
     # Remove old file.
     rm -f /etc/ssh/moduli
 
     # Fetch the Diffie-Hellman Parameter set from the company
     # that offers continuusly fresh copy as a public service.
     for bits in 2048 3072 4096 8192; do
-        curl -k -s https://2ton.com.au/dhparam/${bits}/ssh | \
-            tee -a /etc/ssh/moduli >/dev/null
+        wget -q --no-check-certificate -O - https://2ton.com.au/dhparam/${bits}/ssh | \
+            grep -vE '^#' | tee -a /etc/ssh/moduli >/dev/null
     done
 else
     # Remove unsafe bit sizes.
