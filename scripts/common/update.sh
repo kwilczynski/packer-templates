@@ -377,6 +377,34 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
 datasource_list: [ $(IFS=',' ; echo "${DATA_SOURCES[*]}" | sed -e 's/,/, /g') ]
 EOF
 
+    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+cloud_config_modules:
+  - emit_upstart
+  - disk_setup
+  - mounts
+  - ssh-import-id
+  - locale
+  - set-passwords
+  - grub-dpkg
+  - apt-pipelining
+  - apt-configure
+  - package-update-upgrade-install
+  - timezone
+  - disable-ec2-metadata
+  - runcmd
+cloud_final_modules:
+  - scripts-vendor
+  - scripts-per-once
+  - scripts-per-boot
+  - scripts-per-instance
+  - scripts-user
+  - ssh-authkey-fingerprints
+  - keys-to-console
+  - phone-home
+  - final-message
+  - power-state-change
+EOF
+
     dpkg-reconfigure cloud-init
 fi
 
