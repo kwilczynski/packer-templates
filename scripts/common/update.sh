@@ -615,8 +615,10 @@ done
 # on EC2, since the storage type may vay significantly.
 if [[ $AMAZON_EC2 == 'no' ]]; then
     for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); do
+        NR_REQUESTS="block/${block}/queue/nr_requests = 256"
         SCHEDULER="block/${block}/queue/scheduler = noop"
         if [[ $block =~ ^dm.*$ ]]; then
+            NR_REQUESTS=''
             SCHEDULER=''
         fi
 
@@ -624,7 +626,7 @@ if [[ $AMAZON_EC2 == 'no' ]]; then
 block/${block}/queue/add_random = 0
 block/${block}/queue/rq_affinity = 2
 block/${block}/queue/read_ahead_kb = 256
-block/${block}/queue/nr_requests = 256
+${NR_REQUESTS}
 block/${block}/queue/rotational = 0
 ${SCHEDULER}
 EOF
