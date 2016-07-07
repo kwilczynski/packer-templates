@@ -403,6 +403,8 @@ cloud_final_modules:
   - phone-home
   - final-message
   - power-state-change
+mounts:
+  - [ ephemeral, null ]
 EOF
 
     dpkg-reconfigure cloud-init
