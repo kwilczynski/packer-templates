@@ -32,7 +32,7 @@ export DEBCONF_NONINTERACTIVE_SEEN=true
 
 # This is only applicable when building Amazon EC2 image (AMI).
 AMAZON_EC2='no'
-if wget -q --timeout 1 --wait 1 ---tries 2 --spider http://169.254.169.254/ &>/dev/null; then
+if wget -q --timeout 1 --wait 1 --tries 2 --spider http://169.254.169.254/ &>/dev/null; then
     AMAZON_EC2='yes'
 fi
 
