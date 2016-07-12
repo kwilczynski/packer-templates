@@ -277,9 +277,19 @@ rm -rf /dev/.udev \
 if [[ $AMAZON_EC2 == 'yes' ]]; then
     # Get rid of this file, alas clout-init will probably
     # create it again automatically so that it can wreck
-    # network configuration.
-    rm -f /etc/network/interfaces.d/50-cloud-init.cfg
-    ln -sf /dev/null /etc/network/interfaces.d/50-cloud-init.cfg
+    # network configuration. These files, sadly cannot be
+    # simply a symbolic links to /dev/null, as cloud-init
+    # would change permission of the device node to 0644,
+    # which is disastrous, every time during the system
+    # startup.
+    rm -f \
+      /etc/network/interfaces.d/50-cloud-init.cfg \
+      /etc/systemd/network/50-cloud-init-eth0.link
+
+    pushd /etc/network/interfaces.d &>/dev/null
+    mknod .null c 1 3
+    ln -sf .null 50-cloud-init.cfg
+    popd &>/dev/null
 fi
 
 # Remove surplus locale (and only retain the English one).
@@ -323,6 +333,11 @@ mkdir -p /var/lib/apt/periodic \
 chown -R root: /var/lib/apt
 chmod -R 755 /var/lib/apt
 
+# Newer version of Ubuntu introduce a dedicated
+# "_apt" user, which owns the temporary files.
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    chown _apt: /var/lib/apt/lists/partial
+fi
 apt-cache gencaches
 
 touch /var/log/{lastlog,wtmp,btmp}
