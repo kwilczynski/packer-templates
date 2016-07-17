@@ -652,6 +652,14 @@ else
     service sysfsutils restart
 fi
 
+# Restrict access to PID directories under "/proc". This will
+# make it more difficult for users to gather information about
+# the processes of other users. User "root" and users who are
+# members of the "sudo" group would not be restricted.
+cat <<EOS | sed -e 's/\s\+/\t/g' >> /etc/fstab
+proc /proc proc rw,nosuid,nodev,noexec,relatime,hidepid=2,gid=sudo 0 0
+EOS
+
 # The "/dev/shm" is going to be a symbolic link to "/run/shm" on
 # both the Ubuntu 12.04 and 14.04, and most likely onwards.
 cat <<EOS | sed -e 's/\s\+/\t/g' >> /etc/fstab
