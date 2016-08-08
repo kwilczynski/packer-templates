@@ -501,7 +501,7 @@ vm.dirty_background_ratio = 5
 vm.dirty_expire_centisecs = 12000
 EOF
 
-cat <<'EOF' > /etc/sysctl.d/10-network.conf
+cat <<EOF | sed -e '/^$/d' > /etc/sysctl.d/10-network.conf
 net.core.default_qdisc = fq_codel
 net.core.somaxconn = 1024
 net.core.rmem_max = 16777216
@@ -516,6 +516,9 @@ net.ipv4.tcp_no_metrics_save = 1
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.tcp_slow_start_after_idle = 0
 net.ipv4.ip_local_port_range = 1024 65535
+$(if [[ $AMAZON_EC2 == 'yes' ]]; then
+echo 'net.ipv4.neigh.default.gc_thresh1 = 0'
+fi)
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-network-security.conf
