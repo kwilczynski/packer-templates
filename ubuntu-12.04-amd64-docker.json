@@ -88,7 +88,7 @@
           "modifyvm",
           "{{ .Name }}",
           "--memory",
-          "384"
+          "512"
         ],
         [
           "modifyvm",
@@ -168,7 +168,7 @@
       "vmx_data": {
         "numvcpus": "1",
         "cpuid.coresPerSocket": "1",
-        "memsize": "384"
+        "memsize": "512"
       }
     },
     {
