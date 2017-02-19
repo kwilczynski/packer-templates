@@ -180,7 +180,7 @@
       "vmx_data": {
         "numvcpus": "1",
         "cpuid.coresPerSocket": "1",
-        "memsize": "512"
+        "memsize": "768"
       }
     },
     {

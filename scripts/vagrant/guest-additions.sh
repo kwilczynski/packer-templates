@@ -123,8 +123,17 @@ case "$PACKER_BUILDER_TYPE" in
         tar -cf vmhgfs.tar vmhgfs-only
 
         popd &>/dev/null
-        /tmp/vmware-archive/vmware-tools-distrib/vmware-install.pl -d
+        /tmp/vmware-archive/vmware-tools-distrib/vmware-install.pl -d -f \
+            --clobber-kernel-modules=pvscsi,vmblock,vmci,vmhgfs,vmmemctl,vmsync,vmxnet,vmxnet3,vsock
         umount /tmp/vmware
+
+        sed -i -e \
+            's/answer AUTO_KMODS_ENABLED\s.*/answer AUTO_KMODS_ENABLED yes/g' \
+            /etc/vmware-tools/locations
+
+        sed -i -e \
+            's/answer AUTO_KMODS_ENABLED_ANSWER\s.*/answer AUTO_KMODS_ENABLED_ANSWER yes/g' \
+            /etc/vmware-tools/locations
 
         rm -rf /tmp/vmware \
                /tmp/vmware-archive \
