@@ -183,6 +183,17 @@
       "instance_type": "{{user `instance_type`}}",
       "enhanced_networking": "{{user `enhanced_networking`}}",
       "source_ami": "{{user `source_ami`}}",
+      "source_ami_filter": {
+        "filters": {
+          "name": "*ubuntu-trusty-14.04-amd64-server-*",
+          "root-device-type": "ebs",
+          "virtualization-type": "hvm"
+        },
+        "owners": [
+          "099720109477"
+        ],
+        "most_recent": true
+      },
       "ami_virtualization_type": "hvm",
       "associate_public_ip_address": "true",
       "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
@@ -220,6 +231,17 @@
       "instance_type": "{{user `instance_type`}}",
       "enhanced_networking": "{{user `enhanced_networking`}}",
       "source_ami": "{{user `source_ami`}}",
+      "source_ami_filter": {
+        "filters": {
+          "name": "*ubuntu-trusty-14.04-amd64-server-*",
+          "root-device-type": "instance-store",
+          "virtualization-type": "hvm"
+        },
+        "owners": [
+          "099720109477"
+        ],
+        "most_recent": true
+      },
       "ami_virtualization_type": "hvm",
       "associate_public_ip_address": "true",
       "bundle_prefix": "{{user `name`}}-{{timestamp}}",
