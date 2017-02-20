@@ -1,4 +1,4 @@
-Packer templates for creating Amazon EC2 images and Vagrant boxes.
+Packer templates for creating Amazon EC2 images (HVM only) and Vagrant boxes.
 
 Currently supported images:
 
