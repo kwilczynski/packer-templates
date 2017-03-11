@@ -33,8 +33,8 @@ export DEBCONF_NONINTERACTIVE_SEEN=true
 [[ -d $RUBY_FILES ]] || mkdir -p $RUBY_FILES
 
 cat <<EOF > /etc/apt/sources.list.d/brightbox-ruby.list
-deb http://ppa.launchpad.net/brightbox/ruby-ng/ubuntu ${UBUNTU_RELEASE} main
-deb-src http://ppa.launchpad.net/brightbox/ruby-ng/ubuntu ${UBUNTU_RELEASE} main
+deb http://ppa.launchpad.net/brightbox/ruby-ng/ubuntu $UBUNTU_RELEASE main
+deb-src http://ppa.launchpad.net/brightbox/ruby-ng/ubuntu $UBUNTU_RELEASE main
 EOF
 
 chown root: /etc/apt/sources.list.d/brightbox-ruby.list

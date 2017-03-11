@@ -27,7 +27,7 @@ GEMS=( specinfra-ec2_metadata-tags )
 
 # By default, assume that latest version of Itamae is stable.
 if [[ -n $ITAMAE_VERSION ]]; then
-    gem install --no-document --no-suggestions itamae --version ${ITAMAE_VERSION}
+    gem install --no-document --no-suggestions itamae --version $ITAMAE_VERSION
 else
     gem install --no-document --no-suggestions itamae
 fi

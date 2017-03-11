@@ -206,6 +206,25 @@ EOF
     fi
 fi
 
+# Add fix for APT hash sum mismatch.
+if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+    cat <<EOF > /etc/apt/sources.list.d/apt-backport.list
+deb https://packagecloud.io/computology/apt-backport/ubuntu $UBUNTU_RELEASE main
+deb-src https://packagecloud.io/computology/apt-backport/ubuntu $UBUNTU_RELEASE main
+EOF
+
+    chown root: /etc/apt/sources.list.d/apt-backport.list
+    chmod 644 /etc/apt/sources.list.d/apt-backport.list
+
+    if [[ ! -f ${COMMON_FILES}/apt-backport.key ]]; then
+        # Fetch Computology's key from the key server.
+        wget --no-check-certificate -O ${COMMON_FILES}/apt-backport.key \
+            https://packagecloud.io/computology/apt-backport/gpgkey
+    fi
+
+    apt-key add ${COMMON_FILES}/apt-backport.key
+fi
+
 # By default, the "cloud-init" will override the default mirror when run as
 # Amazon EC2 instance, thus we replace this file only when building Vagrant
 # boxes.
