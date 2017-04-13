@@ -16,6 +16,7 @@
     "ec2_ami_tools_version": "{{env `EC2_AMI_TOOLS_VERSION`}}",
     "aws_cfn_bootstrap_version": "{{env `AWS_CFN_BOOTSTRAP_VERSION`}}",
     "sriov_driver_version": "{{env `SRIOV_DRIVER_VERSION`}}",
+    "ena_driver_version": "{{env `ENA_DRIVER_VERSION`}}",
     "account_id": "{{env `AWS_ACCOUNT_ID`}}",
     "access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
@@ -356,6 +357,7 @@
         "EC2_AMI_TOOLS_VERSION={{user `ec2_ami_tools_version`}}",
         "AWS_CFN_BOOTSTRAP_VERSION={{user `aws_cfn_bootstrap_version`}}",
         "SRIOV_DRIVER_VERSION={{user `sriov_driver_version`}}",
+        "ENA_DRIVER_VERSION={{user `ena_driver_version`}}",
         "RUBY_VERSION={{user `ruby_version`}}",
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
