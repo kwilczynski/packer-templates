@@ -284,11 +284,17 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
     # startup.
     rm -f \
       /etc/network/interfaces.d/50-cloud-init.cfg \
-      /etc/systemd/network/50-cloud-init-eth0.link
+      /etc/systemd/network/50-cloud-init-eth0.link \
+      /etc/udev/rules.d/70-persistent-net.rules
 
     pushd /etc/network/interfaces.d &>/dev/null
     mknod .null c 1 3
     ln -sf .null 50-cloud-init.cfg
+    popd &>/dev/null
+
+    pushd /etc/udev/rules.d &>/dev/null
+    mknod .null c 1 3
+    ln -sf .null 70-persistent-net.rules
     popd &>/dev/null
 fi
 

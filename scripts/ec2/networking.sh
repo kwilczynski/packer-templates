@@ -29,13 +29,13 @@ readonly EC2_FILES='/var/tmp/ec2'
 
 [[ -d $EC2_FILES ]] || mkdir -p $EC2_FILES
 
-# The version 3.1.2 is currently the recommended version.
-SRIOV_DRIVER='ixgbevf-3.1.2.tar.gz'
+# The version 4.2.1 is currently the recommended version.
+SRIOV_DRIVER='ixgbevf-4.2.1.tar.gz'
 if [[ -n $SRIOV_DRIVER_VERSION ]]; then
     SRIOV_DRIVER="ixgbevf-${SRIOV_DRIVER_VERSION}.tar.gz"
 fi
 
-ENA_DRIVER='ena_linux_1.1.3.tar.gz'
+ENA_DRIVER='ena_linux_1.2.0.tar.gz'
 if [[ -n $ENA_DRIVER_VERSION ]]; then
     ENA_DRIVER="ena_linux_${ENA_DRIVER_VERSION}.tar.gz"
 fi
@@ -97,6 +97,11 @@ MAKE="cd src; make BUILD_KERNEL=\${kernelver}"
 EOF
 
 popd &> /dev/null
+
+# Fix /usr/src/ixgbevf-4.2.1/src/kcompat.h:755:2: error: #error UTS_UBUNTU_RELEASE_ABI is too large...
+# Ref: https://stackoverflow.com/a/44833347
+# #if UTS_UBUNTU_RELEASE_ABI > 255
+sed -i 's/#if UTS_UBUNTU_RELEASE_ABI > 255/#if UTS_UBUNTU_RELEASE_ABI > 99255/' /usr/src/ixgbevf-${SRIOV_DRIVER_VERSION}/src/kcompat.h
 
 chown root: ${SOURCE_DIRECTORY}/dkms.conf
 chmod 644 ${SOURCE_DIRECTORY}/dkms.conf
