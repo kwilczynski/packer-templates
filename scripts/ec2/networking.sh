@@ -99,9 +99,10 @@ EOF
 popd &> /dev/null
 
 # Fix /usr/src/ixgbevf-4.2.1/src/kcompat.h:755:2: error: #error UTS_UBUNTU_RELEASE_ABI is too large...
-# Ref: https://stackoverflow.com/a/44833347
-# #if UTS_UBUNTU_RELEASE_ABI > 255
-sed -i 's/#if UTS_UBUNTU_RELEASE_ABI > 255/#if UTS_UBUNTU_RELEASE_ABI > 99255/' /usr/src/ixgbevf-${SRIOV_DRIVER_VERSION}/src/kcompat.h
+# See: https://stackoverflow.com/a/44833347
+sed -i -e \
+    's/#if UTS_UBUNTU_RELEASE_ABI > 255/#if UTS_UBUNTU_RELEASE_ABI > 99255/' \
+    /usr/src/ixgbevf-${SRIOV_DRIVER_VERSION}/src/kcompat.h
 
 chown root: ${SOURCE_DIRECTORY}/dkms.conf
 chmod 644 ${SOURCE_DIRECTORY}/dkms.conf
