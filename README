@@ -6,7 +6,7 @@ Currently supported images:
 - Ubuntu 14.04 "Trusty Tahr" (version: 14.04.4)
 - Ubuntu 16.04 "Xenial Xerus" (version: 16.04.2)
 
-Up to date Vagrant boxes can be found at https://atlas.hashicorp.com/kwilczynski
+Up to date Vagrant boxes can be found at https://app.vagrantup.com/kwilczynski
 
 At the moment, the Amazon EC2 images include:
 
