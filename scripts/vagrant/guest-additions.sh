@@ -46,7 +46,7 @@ case "$PACKER_BUILDER_TYPE" in
             /tmp/virtualbox
 
         export REMOVE_INSTALLATION_DIR=0
-        yes 2>/dev/null </dev/null | bash /tmp/virtualbox/VBoxLinuxAdditions.run --nox11 2>&1
+        yes 2>/dev/null </dev/null | bash /tmp/virtualbox/VBoxLinuxAdditions.run --nox11 2>&1 || true
 
         umount /tmp/virtualbox
 
