@@ -38,6 +38,7 @@ Vagrant.configure('2') do |config|
       vm.vmx['ethernet0.virtualDev'] = 'vmxnet3'
       vm.vmx['ethernet0.addressType'] = 'generated'
       vm.vmx['ethernet0.wakeOnPcktRcv'] = 'FALSE'
+      vm.vmx['ethernet0.pcislotnumber'] = '33'
       vm.vmx['floppy0.present'] = 'FALSE'
       vm.vmx['scsi0.present'] = 'TRUE'
       vm.vmx['scsi0.virtualDev'] = 'lsilogic'
