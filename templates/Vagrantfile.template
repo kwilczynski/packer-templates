@@ -1,3 +1,7 @@
+def linked_clones?
+  Gem::Version.new(Vagrant::VERSION) >= Gem::Version.new('1.8.0')
+end
+
 Vagrant.configure('2') do |config|
   config.ssh.forward_agent = true
 
@@ -10,7 +14,7 @@ Vagrant.configure('2') do |config|
   end
 
   config.vm.provider :virtualbox do |vm, override|
-    vm.linked_clone = true if Vagrant::VERSION =~ /^1.8/
+    vm.linked_clone = true if linked_clones?
     vm.customize [ 'modifyvm', :id,
       '--chipset', 'ich9',
       '--rtcuseutc', 'on',
@@ -22,7 +26,7 @@ Vagrant.configure('2') do |config|
 
   %w(vmware_fusion vmware_workstation).each do |provider|
     config.vm.provider provider do |vm, override|
-      vm.linked_clone = true if Vagrant::VERSION =~ /^1.8/
+      vm.linked_clone = true if linked_clones?
       vm.vmx['logging'] = 'FALSE'
       vm.vmx['rtc.diffFromUTC'] = 0
       vm.vmx['snapshot.disabled'] = 'TRUE'
