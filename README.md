@@ -2,6 +2,8 @@ Packer templates for creating Amazon EC2 images (HVM only) and Vagrant boxes.
 
 Currently supported images:
 
+**WARNING**: Ubuntu 12.04 (Precise Pangolin) is past its **End of Life.**
+
 - Ubuntu 12.04 "Precise Pangolin" (version: 12.04.5)
 - Ubuntu 14.04 "Trusty Tahr" (version: 14.04.4)
 - Ubuntu 16.04 "Xenial Xerus" (version: 16.04.3)
