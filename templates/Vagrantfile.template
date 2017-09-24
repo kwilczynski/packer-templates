@@ -22,6 +22,9 @@ Vagrant.configure('2') do |config|
       '--natdnshostresolver1', 'on',
       '--nictype1', 'virtio'
     ]
+    vm.customize ['guestproperty', 'set', :id,
+      '/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold', 5000
+    ]
   end
 
   %w(vmware_fusion vmware_workstation).each do |provider|
