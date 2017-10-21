@@ -481,6 +481,28 @@ EOF
 chown root: /etc/modprobe.d/blacklist-legacy.conf
 chmod 644 /etc/modprobe.d/blacklist-legacy.conf
 
+cat <<'EOF' > /etc/modprobe.d/blacklist-conntrack.conf
+blacklist nf_conntrack_amanda
+blacklist nf_conntrack_broadcast
+blacklist nf_conntrack_ftp
+blacklist nf_conntrack_h323
+blacklist nf_conntrack_irc
+blacklist nf_conntrack_netbios_ns
+blacklist nf_conntrack_netlink
+blacklist nf_conntrack_pptp
+blacklist nf_conntrack_proto_dccp
+blacklist nf_conntrack_proto_gre
+blacklist nf_conntrack_proto_sctp
+blacklist nf_conntrack_proto_udplite
+blacklist nf_conntrack_sane
+blacklist nf_conntrack_sip
+blacklist nf_conntrack_snmp
+blacklist nf_conntrack_tftp
+EOF
+
+chown root: /etc/modprobe.d/blacklist-conntrack.conf
+chmod 644 /etc/modprobe.d/blacklist-conntrack.conf
+
 # Prevent the lp and rtc modules from being loaded.
 sed -i -e \
     '/^lp/d;/^rtc/d' \
@@ -578,6 +600,7 @@ kernel.dmesg_restrict = 1
 kernel.randomize_va_space = 2
 kernel.perf_event_paranoid = 2
 kernel.yama.ptrace_scope = 1
+kernel.kexec_load_disabled = 1
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-link-restrictions.conf
@@ -661,6 +684,12 @@ cat <<'EOF' > /etc/sysfs.d/transparent_hugepage.conf
 kernel/mm/transparent_hugepage/enabled = never
 kernel/mm/transparent_hugepage/defrag = never
 EOF
+
+# Disable KSM (Kernel Shared Memory) if present,
+# to try to mitigate the Row-Hammer attack.
+if [[ -f /sys/kernel/mm/ksm ]]; then
+    echo 'kernel/mm/ksm/run = 0' > /etc/sysfs.d/ksm.conf
+fi
 
 chown -R root: /etc/sysfs.conf \
                /etc/sysfs.d

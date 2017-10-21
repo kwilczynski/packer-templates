@@ -26,6 +26,7 @@ KERNEL_OPTIONS=(
     quiet divider=10 tsc=reliable elevator=noop
     net.ifnames=0 biosdevname=0 console=tty1
     console=ttyS0 xen_emul_unplug=unnecessary
+    vsyscall=emulate mce=0
 )
 
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
