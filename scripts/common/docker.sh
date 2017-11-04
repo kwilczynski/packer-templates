@@ -104,10 +104,39 @@ for file in docker docker-compose; do
     chmod 644 /etc/bash_completion.d/${file}
 done
 
-# Disable IPv6 in Docker.
+STORAGE_DRIVER='overlay2'
+if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    # No support for overlay2 file system in the
+    # Linux kernel on older versions of Ubuntu.
+    STORAGE_DRIVER='overlay'
+fi
+
 sed -i -e \
-    's/.*DOCKER_OPTS="\(.*\)"/DOCKER_OPTS="\1 --ipv6=false"/g' \
+    's/.*DOCKER_OPTS="\(.*\)"/DOCKER_OPTS="--config-file=/etc/docker/daemon.json"/g' \
     /etc/default/docker
+
+cat <<EOF > /etc/docker/daemon.json
+{
+  "data-root": "/var/lib/docker",
+  "storage-driver": "${STORAGE_DRIVER}",
+  "ipv6": false,
+  "debug": false,
+  "dns": [
+    "8.8.8.8",
+    "4.4.2.2"
+  ]
+}
+EOF
+
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    rm -f \
+        /etc/default/docker \
+        /etc/init.d/docker
+fi
+
+chown root: /etc/docker/daemon.json
+chmod 644 /etc/docker/daemon.json
+
 
 # We can install the docker-compose pip, but it has to be done
 # under virtualenv as it has specific version requirements on
