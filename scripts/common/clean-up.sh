@@ -36,6 +36,10 @@ if wget -q --timeout 1 --wait 1 --tries 2 --spider http://169.254.169.254/ &>/de
     AMAZON_EC2='yes'
 fi
 
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    systemctl daemon-reload
+fi
+
 for service in syslog syslog-ng rsyslog; do
     {
         if [[ $UBUNTU_VERSION == '16.04' ]]; then
