@@ -188,7 +188,7 @@ fi
 
 hash -r
 
-KERNEL_OPTIONS=( swapaccount=1 cgroup_enable=memory )
+KERNEL_OPTIONS=( cgroup_enable=memory swapaccount=1 )
 readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
 
 # Support both grub and grub2 style configuration.
