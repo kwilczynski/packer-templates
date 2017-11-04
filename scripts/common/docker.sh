@@ -126,6 +126,10 @@ cat <<EOF > /etc/docker/daemon.json
   "dns": [
     "8.8.8.8",
     "4.4.2.2"
+  ],
+  "default-ulimit": [
+    "nproc=128:256",
+    "nofile=1024:4096"
   ]
 }
 EOF
