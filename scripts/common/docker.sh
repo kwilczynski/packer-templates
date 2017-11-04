@@ -87,14 +87,16 @@ done
 
 # Add Bash shell completion for Docker and Docker Compose.
 for file in docker docker-compose; do
-    REPOSITORY='docker'
+    REPOSITORY='docker-ce'
+    FILE_PATH='components/cli/contrib/completion/bash'
     if [[ $file =~ ^docker-compose$ ]]; then
-      REPOSITORY='compose'
+        REPOSITORY='compose'
+        FILE_PATH='contrib/completion/bash'
     fi
 
     if [[ ! -f ${DOCKER_FILES}/${file} ]]; then
         wget --no-check-certificate -O ${DOCKER_FILES}/${file} \
-            https://raw.githubusercontent.com/docker/${REPOSITORY}/master/contrib/completion/bash/${file}
+            https://raw.githubusercontent.com/docker/${REPOSITORY}/master/${FILE_PATH}/${file}
     fi
 
     cp -f ${DOCKER_FILES}/${file} \
