@@ -34,6 +34,20 @@ EOF
 chown root: /etc/bash_completion.d/aws
 chmod 644 /etc/bash_completion.d/aws
 
+
+# We can install the docker-compose pip, but it has to be done
+# under virtualenv as it has specific version requirements on
+# its dependencies, often causing other things to break.
+virtualenv /opt/awscli
+pushd /opt/awscli &>/dev/null
+
+# Make sure to switch into the virtualenv.
+. /opt/awscli/bin/activate
+
+# This is needed, as virtualenv by default will install
+# some really old version (e.g. 12.0.x, etc.), sadly.
+pip install --upgrade setuptools
+
 # Resolve the "InsecurePlatformWarning" warning.
 pip install --upgrade ndg-httpsclient
 
@@ -49,6 +63,12 @@ else
         --install-option='--install-scripts=/usr/local/bin' \
         awscli
 fi
+
+# Install the CloudWatch Logs plugin.
+pip install awscli-cwlogs
+
+deactivate
+popd &>/dev/null
 
 rm -f /usr/local/bin/aws.cmd \
       /usr/local/bin/aws_zsh_completer.sh
@@ -72,6 +92,9 @@ for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
 
         # Basic, just to set correct region.
         cat <<EOF | sed -e '/^$/d' > ${HOME_DIRECTORY}/.aws/config
+[plugins]
+cwlogs = cwlogs
+
 [default]
 $(if [[ $PACKER_BUILDER_TYPE =~ ^amazon-.+$ ]]; then
     printf "%s = %s" "region" $AWS_DEFAULT_REGION
