@@ -328,7 +328,6 @@
     },
     {
       "type": "shell",
-      "expect_disconnect": "true",
       "only": [
         "vagrant-virtualbox",
         "vagrant-vmware"
