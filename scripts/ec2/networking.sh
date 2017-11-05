@@ -35,7 +35,7 @@ if [[ -n $SRIOV_DRIVER_VERSION ]]; then
     SRIOV_DRIVER="ixgbevf-${SRIOV_DRIVER_VERSION}.tar.gz"
 fi
 
-ENA_DRIVER='ena_linux_1.2.0.tar.gz'
+ENA_DRIVER='ena_linux_1.3.0.tar.gz'
 if [[ -n $ENA_DRIVER_VERSION ]]; then
     ENA_DRIVER="ena_linux_${ENA_DRIVER_VERSION}.tar.gz"
 fi
