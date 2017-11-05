@@ -3,7 +3,7 @@
 #
 # clean-up.sh
 #
-# Copyright 2016 Krzysztof Wilczynski
+# Copyright 2016-2017 Krzysztof Wilczynski
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #
 
 set -e
+set -o pipefail
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -251,7 +252,12 @@ rm -rf /lib/recovery-mode
 
 rm -rf /var/lib/cloud/data/scripts \
        /var/lib/cloud/scripts/per-instance \
-       /var/lib/cloud/data/user-data*
+       /var/lib/cloud/data/user-data* \
+       /var/lib/cloud/instance \
+       /var/lib/cloud/instances/*
+
+rm -rf /var/log/docker \
+       /var/run/docker.sock
 
 # Prevent storing of the MAC address as part of the network
 # interface details saved by systemd/udev, and disable support

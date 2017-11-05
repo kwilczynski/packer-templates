@@ -3,7 +3,7 @@
 #
 # chef-client.sh
 #
-# Copyright 2016 Krzysztof Wilczynski
+# Copyright 2016-2017 Krzysztof Wilczynski
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,9 @@
 #
 
 set -e
+set -o pipefail
 
-_select_platform() {
+select_platform() {
     case "$(uname -m)" in
         x86|i?86)
             echo i386;
@@ -39,7 +40,7 @@ readonly CHEF_FILES='/var/tmp/chef'
 
 # The Chef Client package might already exist - and if so, then omit
 # downloading it from the Internet again since it can take a while.
-CHEF_CLIENT_PACKAGE="${CHEF_FILES}/chef_${CHEF_CLIENT_VERSION}-1_$(_select_platform).deb"
+CHEF_CLIENT_PACKAGE="${CHEF_FILES}/chef_${CHEF_CLIENT_VERSION}-1_$(select_platform).deb"
 if [[ -f $CHEF_CLIENT_PACKAGE ]]; then
     dpkg -i $CHEF_CLIENT_PACKAGE
 else

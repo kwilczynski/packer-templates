@@ -3,7 +3,7 @@
 #
 # python-pip.sh
 #
-# Copyright 2016 Krzysztof Wilczynski
+# Copyright 2016-2017 Krzysztof Wilczynski
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #
 
 set -e
+set -o pipefail
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -69,5 +70,3 @@ pip install --upgrade ndg-httpsclient
 for file in /usr/local/bin/easy_install*; do
     ln -sf $file /usr/bin/${file##*/}
 done
-
-hash -r

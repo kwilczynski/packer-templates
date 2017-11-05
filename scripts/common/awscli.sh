@@ -3,7 +3,7 @@
 #
 # awscli.sh
 #
-# Copyright 2016 Krzysztof Wilczynski
+# Copyright 2016-2017 Krzysztof Wilczynski
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #
 
 set -e
+set -o pipefail
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -33,7 +34,6 @@ EOF
 
 chown root: /etc/bash_completion.d/aws
 chmod 644 /etc/bash_completion.d/aws
-
 
 # We can install the docker-compose pip, but it has to be done
 # under virtualenv as it has specific version requirements on
