@@ -22,6 +22,8 @@ set -e
 
 export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
+readonly PACKER_BUILDER_TYPE=${PACKER_BUILDER_TYPE//-*}
+
 # Get details about the Ubuntu release ...
 readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 
@@ -46,7 +48,11 @@ chmod 644 /etc/hostname
 echo 'localdomain' > /proc/sys/kernel/domainname
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
-  hostnamectl --static set-hostname $HOSTNAME
+    hostnamectl --static set-hostname "$HOSTNAME"
+    hostnamectl --static set-deployment 'development'
+    hostnamectl --static set-icon-name 'network-server'
+    hostnamectl --static set-location "$PACKER_BUILDER_TYPE"
+    hostnamectl --static set-chassis 'vm'
 else
   hostname -F /etc/hostname
 fi
