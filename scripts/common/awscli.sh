@@ -35,9 +35,9 @@ EOF
 chown root: /etc/bash_completion.d/aws
 chmod 644 /etc/bash_completion.d/aws
 
-# We can install the docker-compose pip, but it has to be done
-# under virtualenv as it has specific version requirements on
-# its dependencies, often causing other things to break.
+# We can install the awscli pip, but it has to be done under
+# virtualenv as it has specific version requirements on its
+# dependencies, often causing other things to break.
 virtualenv /opt/awscli
 pushd /opt/awscli &>/dev/null
 
