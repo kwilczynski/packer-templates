@@ -29,7 +29,9 @@
     "subnet_id": "{{env `EC2_SUBNET_ID`}}",
     "s3_bucket": "{{env `S3_BUCKET`}}",
     "instance_type": "m3.medium",
-    "enhanced_networking": "false",
+    "ena_support": "false",
+    "sriov_support": "false",
+    "encrypt_boot": "true",
     "source_ami": "{{env `EC2_SOURCE_AMI`}}",
     "headless": "true"
   },
@@ -182,7 +184,8 @@
       "vpc_id": "{{user `vpc_id`}}",
       "subnet_id": "{{user `subnet_id`}}",
       "instance_type": "{{user `instance_type`}}",
-      "enhanced_networking": "{{user `enhanced_networking`}}",
+      "ena_support": "{{user `ena_support`}}",
+      "sriov_support": "{{user `sriov_support`}}",
       "source_ami": "{{user `source_ami`}}",
       "source_ami_filter": {
         "filters": {
@@ -199,6 +202,7 @@
       "associate_public_ip_address": "true",
       "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
       "ssh_username": "ubuntu",
+      "encrypt_boot": "{{user `encrypt_boot`}}",
       "launch_block_device_mappings": [
         {
           "device_name": "/dev/sda1",
@@ -230,7 +234,8 @@
       "subnet_id": "{{user `subnet_id`}}",
       "s3_bucket": "{{if ne (user `s3_bucket`) `` }}{{user `s3_bucket`}}{{else}}{{end}}/{{user `name`}}-{{timestamp}}",
       "instance_type": "{{user `instance_type`}}",
-      "enhanced_networking": "{{user `enhanced_networking`}}",
+      "ena_support": "{{user `ena_support`}}",
+      "sriov_support": "{{user `sriov_support`}}",
       "source_ami": "{{user `source_ami`}}",
       "source_ami_filter": {
         "filters": {
@@ -250,6 +255,7 @@
       "bundle_upload_command": "sudo -H -S -E -n bash /var/tmp/ec2/ec2-upload-bundle.sh -b {{.BucketName}} -m {{.ManifestPath}} -a {{.AccessKey}} -s {{.SecretKey}} -d {{.BundleDirectory}} --region {{.Region}}",
       "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
       "ssh_username": "ubuntu",
+      "encrypt_boot": "{{user `encrypt_boot`}}",
       "tags": {
         "Name": "{{user `name`}}",
         "Version": "{{user `version`}}",
@@ -325,6 +331,7 @@
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
       "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash '{{ .Path }}'",
+      "expect_disconnect": "true",
       "scripts": [
         "scripts/vagrant/hostname.sh",
         "scripts/common/update.sh",
@@ -375,6 +382,7 @@
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
       "execute_command": "{{ .Vars }} sudo -H -S -E -n bash '{{ .Path }}'",
+      "expect_disconnect": "true",
       "override": {
         "amazon-ebs": {
           "scripts": [
