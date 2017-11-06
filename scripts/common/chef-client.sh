@@ -19,7 +19,6 @@
 #
 
 set -e
-set -o pipefail
 
 select_platform() {
     case "$(uname -m)" in

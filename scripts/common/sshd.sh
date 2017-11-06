@@ -19,7 +19,6 @@
 #
 
 set -e
-set -o pipefail
 
 join() {
     eval "local values=(\${$1[@]})"
