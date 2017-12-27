@@ -1,38 +1,24 @@
 #!/bin/bash
 
-#
-# motd.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-# Get details about the Ubuntu release ...
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+source /var/tmp/helpers/default.sh
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
 
 # Dependencies needed by Landscape.
-PACKAGES=( python-twisted-core python-configobj landscape-common )
+PACKAGES=(
+    'python-twisted-core'
+    'python-configobj'
+    'landscape-common'
+)
+
+apt_get_update
 
 for package in "${PACKAGES[@]}"; do
-    apt-get --assume-yes install $package
+    apt-get --assume-yes install "$package"
 done
 
 # Remove the warranty information.
@@ -61,8 +47,9 @@ chmod 644 /etc/landscape/client.conf
 if [[ -f /etc/init.d/landscape-client ]]; then
     {
         if [[ $UBUNTU_VERSION == '16.04' ]]; then
-            systemctl stop landscape-client
-            systemctl disable landscape-client
+            for option in stop disable; do
+                systemctl "$option" landscape-client || true
+            done
         else
           service landscape-client stop
           update-rc.d -f landscape-client disable

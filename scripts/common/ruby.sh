@@ -1,36 +1,16 @@
 #!/bin/bash
 
-#
-# ruby.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
+
+source /var/tmp/helpers/default.sh
 
 readonly RUBY_FILES='/var/tmp/ruby'
 
-# Get details about the Ubuntu release ...
-readonly UBUNTU_RELEASE=$(lsb_release -sc)
+readonly UBUNTU_RELEASE=$(detect_ubuntu_release)
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
-
-[[ -d $RUBY_FILES ]] || mkdir -p $RUBY_FILES
+[[ -d $RUBY_FILES ]] || mkdir -p "$RUBY_FILES"
 
 cat <<EOF > /etc/apt/sources.list.d/brightbox-ruby.list
 deb http://ppa.launchpad.net/brightbox/ruby-ng/ubuntu $UBUNTU_RELEASE main
@@ -40,11 +20,11 @@ EOF
 chown root: /etc/apt/sources.list.d/brightbox-ruby.list
 chmod 644 /etc/apt/sources.list.d/brightbox-ruby.list
 
-if [[ ! -f ${RUBY_FILES}/brightbox-ruby.key ]]; then
+if [[ ! -f "${RUBY_FILES}/brightbox-ruby.key" ]]; then
     # Fetch Brightbox's PPA key from the key server.
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C3173AA6
 else
-    apt-key add ${RUBY_FILES}/brightbox-ruby.key
+    apt-key add "${RUBY_FILES}/brightbox-ruby.key"
 fi
 
 # Only refresh packages index from Brightbox's repository.
@@ -53,7 +33,9 @@ apt-get --assume-yes update \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
 # Packages to insall alongside Ruby.
-PACKAGES=( ruby-switch )
+PACKAGES=(
+    'ruby-switch'
+)
 
 # By default, assume that Ruby 2.3 as a latest stable version.
 if [[ -n $RUBY_VERSION ]]; then
@@ -63,10 +45,10 @@ else
 fi
 
 for package in "${PACKAGES[@]}"; do
-    apt-get --assume-yes install $package
+    apt-get --assume-yes install "$package"
 done
 
 # Update RubyGems release to the latest one.
 gem update --system
 
-rm -f ${RUBY_FILES}/brightbox-ruby.key
+rm -f "${RUBY_FILES}/brightbox-ruby.key"

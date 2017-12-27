@@ -1,38 +1,34 @@
 #!/bin/bash
 
-#
-# grub.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
+
+detect_grub2() {
+    local status=0
+    set +e
+    [[ $(grub-install --version 2>/dev/null) =~ (1.9|2.0) ]]
+    status=$?
+    set -e
+    return $status
+}
 
 KERNEL_OPTIONS=(
-    quiet divider=10 tsc=reliable elevator=noop
-    net.ifnames=0 biosdevname=0 console=tty1
-    console=ttyS0 xen_emul_unplug=unnecessary
-    vsyscall=emulate mce=0
+    'quiet'
+    'divider=10'
+    'tsc=reliable'
+    'elevator=noop'
+    'net.ifnames=0'
+    'biosdevname=0'
+    'console=tty1'
+    'console=ttyS0'
+    'xen_emul_unplug=unnecessary'
+    'vsyscall=emulate'
+    'mce=0'
 )
 
-readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
-
 # Support both grub and grub2 style configuration.
-if grub-install --version | egrep -q '(1.9|2.0).+'; then
+if detect_grub2; then
     sed -i -e \
         's/.*GRUB_HIDDEN_TIMEOUT=.*/GRUB_HIDDEN_TIMEOUT=0/' \
         /etc/default/grub
@@ -46,12 +42,12 @@ if grub-install --version | egrep -q '(1.9|2.0).+'; then
         /etc/default/grub
 
     sed -i -e \
-        "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
+        "s/.*GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS[*]}\"/" \
         /etc/default/grub
 
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS}\"/" \
+        "s/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\1 ${KERNEL_OPTIONS[*]}\"/" \
         /etc/default/grub | \
             grep -E '^GRUB_CMDLINE_LINUX_DEFAULT=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\"/\1/' | \
@@ -105,7 +101,7 @@ else
 
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/^#\sdefoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        "s/^#\sdefoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS[*]}/" \
         /boot/grub/menu.lst | \
             grep -E '^#\sdefoptions=' | \
                 sed -e 's/.*defoptions=//' | \
@@ -141,17 +137,17 @@ if update-grub --help | grep -qF -- '-y'; then
     UPDATE_GRUB_OPTION+='-y'
 fi
 
-update-grub $UPDATE_GRUB_OPTION
+update-grub "$UPDATE_GRUB_OPTION"
 
 if [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     # Select correct root device. We should still
     # be able to boot as we use "LABEL=" to make
     # the kernel scan for the appropriate device.
     ROOT_DEVICE='/dev/xvda'
-    if [[ ! -b $ROOT_DEVICE ]]; then
+    if [[ ! -b "$ROOT_DEVICE" ]]; then
         ROOT_DEVICE='/dev/sda'
     fi
 
     # Make sure not to use grub from the volume snapshot.
-    grub-install --no-floppy $ROOT_DEVICE
+    grub-install --no-floppy "$ROOT_DEVICE"
 fi

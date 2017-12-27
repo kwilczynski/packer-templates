@@ -1,35 +1,12 @@
 #!/bin/bash
 
-#
-# sshd.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-join() {
-    eval "local values=(\${$1[@]})"
-    echo -n $(IFS=',' ; echo "${values[*]}")
-}
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-# This is only applicable when building Amazon EC2 image (AMI).
-AMAZON_EC2='no'
-if wget -q --timeout 1 --wait 1 --tries 2 --spider http://169.254.169.254/ &>/dev/null; then
-    AMAZON_EC2='yes'
-fi
+source /var/tmp/helpers/default.sh
+
+readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 SSH_SETTINGS=(
     'UseDNS no'
@@ -40,39 +17,39 @@ SSH_SETTINGS=(
 
 # The key exchange (KEX) algorithms.
 KEX_ALGORITHMS=(
-    curve25519-sha256@libssh.org
-    diffie-hellman-group-exchange-sha256
+    'curve25519-sha256@libssh.org'
+    'diffie-hellman-group-exchange-sha256'
 )
 
-SSH_SETTINGS+=( "KexAlgorithms $(join KEX_ALGORITHMS)" )
+SSH_SETTINGS+=( "KexAlgorithms $(join $',' "${KEX_ALGORITHMS[@]}")" )
 
 # The ciphers and algorithms used for session encryption.
 CIPHERS=(
-    chacha20-poly1305@openssh.com
-    aes256-gcm@openssh.com
-    aes128-gcm@openssh.com
-    aes256-ctr
-    aes192-ctr
-    aes128-ctr
+    'chacha20-poly1305@openssh.com'
+    'aes256-gcm@openssh.com'
+    'aes128-gcm@openssh.com'
+    'aes256-ctr'
+    'aes192-ctr'
+    'aes128-ctr'
 )
 
-SSH_SETTINGS+=( "Ciphers $(join CIPHERS)" )
+SSH_SETTINGS+=( "Ciphers $(join $',' "${CIPHERS[@]}")" )
 
 # The MAC (Message Authentication Code) algorithms.
 MACS=(
-    hmac-sha2-512-etm@openssh.com
-    hmac-sha2-256-etm@openssh.com
-    hmac-ripemd160-etm@openssh.com
-    umac-128-etm@openssh.com
-    hmac-sha2-512
-    hmac-sha2-256
-    hmac-ripemd160
-    umac-128@openssh.com
+    'hmac-sha2-512-etm@openssh.com'
+    'hmac-sha2-256-etm@openssh.com'
+    'hmac-ripemd160-etm@openssh.com'
+    'umac-128-etm@openssh.com'
+    'hmac-sha2-512'
+    'hmac-sha2-256'
+    'hmac-ripemd160'
+    'umac-128@openssh.com'
 )
 
-SSH_SETTINGS+=( "MACs $(join MACS)" )
+SSH_SETTINGS+=( "MACs $(join $',' "${MACS[@]}")" )
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+if [[ -n $AMAZON_EC2 ]]; then
     SSH_SETTINGS+=(
         'UseLogin no'
         'TCPKeepAlive no'
@@ -92,14 +69,14 @@ yes | ssh-keygen -t rsa -b 4096 -N '' \
 
 # Generate new moduli file to remove weak Diffie-Hellman Parameter
 # set and to prevent the Logjam attack, see: https://weakdh.org/.
-if wget --timeout 1 --wait 1 --tries 2 --spider https://2ton.com.au/ &>/dev/null; then
+if wget --no-proxy --tries 1 --connect-timeout=2 https://2ton.com.au/ &>/dev/null; then
     # Remove old file.
     rm -f /etc/ssh/moduli
 
     # Fetch the Diffie-Hellman Parameter set from the company
     # that offers continuusly fresh copy as a public service.
     for bits in 2048 3072 4096 8192; do
-        wget -q --no-check-certificate -O - https://2ton.com.au/dhparam/${bits}/ssh | \
+        wget -q -O - "https://2ton.com.au/dhparam/${bits}/ssh" | \
             grep -vE '^#' | tee -a /etc/ssh/moduli >/dev/null
     done
 else

@@ -1,48 +1,33 @@
 #!/bin/bash
 
-#
-# packages.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-# Get details about the Ubuntu release ...
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+source /var/tmp/helpers/default.sh
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
-
-# This is only applicable when building Amazon EC2 image (AMI).
-AMAZON_EC2='no'
-if wget -q --timeout 1 --wait 1 --tries 2 --spider http://169.254.169.254/ &>/dev/null; then
-    AMAZON_EC2='yes'
-fi
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 # A list of common packages to be installed.
 PACKAGES=(
-    ntp haveged irqbalance vim heirloom-mailx
-    apt-transport-https software-properties-common
-    python-software-properties wget curl iptables
+    'ntp'
+    'wget'
+    'curl'
+    'vim'
+    'haveged'
+    'iptables'
+    'irqbalance'
+    'heirloom-mailx'
+    'software-properties-common'
+    'python-software-properties'
+    'apt-transport-https'
 )
 
+apt_get_update
+
 for package in "${PACKAGES[@]}"; do
-    apt-get --assume-yes install $package
+    apt-get --assume-yes install "$package"
 done
 
 {
@@ -53,8 +38,11 @@ done
     fi
 } || true
 
+# Force IPv4 only, and enable slew mode to handle the clock
+# moving backwards in one large increment, for example in a
+# case of a leap-second, etc.
 sed -i -e \
-    "s/.*NTPD_OPTS='\(.*\)'/NTPD_OPTS='\1 -4'/g" \
+    "s/.*NTPD_OPTS='\(.*\)'/NTPD_OPTS='-x \1 -4'/g" \
     /etc/default/ntp
 
 # Makes time sync more aggressively in a VM. See
@@ -71,7 +59,7 @@ sed -i -e \
     '/tinker panic.*/a disable monitor' \
     /etc/ntp.conf
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+if [[ -n $AMAZON_EC2 ]]; then
     sed -i -e '/server.*\.ubuntu\.pool\.ntp\.org/ s/\.ubuntu\.\(.*\)\s\?/\.amazon\.\1\ iburst/g' \
         /etc/ntp.conf
 else

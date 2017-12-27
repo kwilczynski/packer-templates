@@ -1,43 +1,21 @@
 #!/bin/bash
 
-#
-# update.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
+
+source /var/tmp/helpers/default.sh
 
 readonly COMMON_FILES='/var/tmp/common'
+readonly UBUNTU_RELEASE=$(detect_ubuntu_release)
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
-# Get details about the Ubuntu release ...
-readonly UBUNTU_RELEASE=$(lsb_release -sc)
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+# Remove current Apt and DPKG overrides ...
+rm -f /etc/apt/apt.conf.d/* \
+      /etc/dpkg/dpkg.cfg.d/*
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
-
-# This is only applicable when building Amazon EC2 image (AMI).
-AMAZON_EC2='no'
-if wget -q --timeout 1 --wait 1 --tries 2 --spider http://169.254.169.254/ &>/dev/null; then
-    AMAZON_EC2='yes'
-fi
-
-cat <<'EOF' > /etc/apt/apt.conf.d/00trust-cdrom
+cat <<'EOF' > /etc/apt/apt.conf.d/99trustcdrom
 APT
 {
     Authentication
@@ -47,46 +25,43 @@ APT
 };
 EOF
 
-chown root: /etc/apt/apt.conf.d/00trust-cdrom
-chmod 644 /etc/apt/apt.conf.d/00trust-cdrom
-
-cat <<'EOF' > /etc/apt/apt.conf.d/10cache
-Dir
-{
-    Cache
-    {
-        pkgcache "";
-        srcpkgcache "";
-    };
-};
-EOF
-
-chown root: /etc/apt/apt.conf.d/10cache
-chmod 644 /etc/apt/apt.conf.d/10cache
-
-cat <<'EOF' > /etc/apt/apt.conf.d/15update-stamp
+cat <<'EOF' > /etc/apt/apt.conf.d/99apt
 APT
 {
-    Update
+    Color "0";
+    Install-Suggests "0";
+    Install-Recommends "0";
+    Clean-Installed "0";
+
+    AutoRemove
     {
-        Post-Invoke-Success
-        {
-            "touch /var/lib/apt/periodic/update-success-stamp 2>/dev/null || true";
-        };
+        SuggestsImportant "0";
+    };
+
+    Get
+    {
+        AllowUnauthenticated "0";
     };
 };
 EOF
 
-chown root: /etc/apt/apt.conf.d/15update-stamp
-chmod 644 /etc/apt/apt.conf.d/15update-stamp
+cat <<EOF > /etc/apt/apt.conf.d/99vendor-ubuntu
+Acquire
+{
+    Changelogs
+    {
+        AlwaysOnline "1";
+    };
+};
+EOF
 
 # Any Amazon EC2 instance can use local packages mirror, but quite often
 # such mirrors are backed by an S3 buckets causing performance drop due
 # to a known problem outside of the "us-east-1" region when using HTTP
 # pipelining for more efficient downloads.
 PIPELINE_DEPTH=5
-if [[ $AMAZON_EC2 == 'yes' ]]; then
-     PIPELINE_DEPTH=0
+if [[ -n $AMAZON_EC2 ]]; then
+     PIPELINE_DEPTH=3
 fi
 
 cat <<EOF > /etc/apt/apt.conf.d/99apt-acquire
@@ -123,30 +98,81 @@ Acquire
 };
 EOF
 
-chown root: /etc/apt/apt.conf.d/99apt-acquire
-chmod 644 /etc/apt/apt.conf.d/99apt-acquire
-
-cat <<'EOF' > /etc/apt/apt.conf.d/99apt-get
+cat <<'EOF' > /etc/apt/apt.conf.d/99update-stamp
 APT
 {
-    Install-Suggests "0";
-    Install-Recommends "0";
-    Clean-Installed "0";
-
-    AutoRemove
+    Update
     {
-        SuggestsImportant "0";
-    };
-
-    Get
-    {
-        AllowUnauthenticated "0";
+        Post-Invoke-Success
+        {
+            "touch /var/lib/apt/periodic/update-success-stamp 2>/dev/null || true";
+        };
     };
 };
 EOF
 
-chown root: /etc/apt/apt.conf.d/99apt-get
-chmod 644 /etc/apt/apt.conf.d/99apt-get
+cat <<'EOF' > /etc/apt/apt.conf.d/99apt-autoremove
+APT
+{
+    NeverAutoRemove
+    {
+	"^firmware-linux.*";
+	"^linux-firmware$";
+    };
+
+    VersionedKernelPackages
+    {
+	"linux-image";
+	"linux-headers";
+	"linux-image-extra";
+	"linux-signed-image";
+	"kfreebsd-image";
+	"kfreebsd-headers";
+	"gnumach-image";
+	".*-modules";
+	".*-kernel";
+	"linux-backports-modules-.*";
+        "linux-tools";
+    };
+
+    Never-MarkAuto-Sections
+    {
+	"metapackages";
+	"contrib/metapackages";
+	"non-free/metapackages";
+	"restricted/metapackages";
+	"universe/metapackages";
+	"multiverse/metapackages";
+    };
+
+    Move-Autobit-Sections
+    {
+        "oldlibs";
+        "contrib/oldlibs";
+        "non-free/oldlibs";
+        "restricted/oldlibs";
+        "universe/oldlibs";
+        "multiverse/oldlibs";
+    };
+};
+EOF
+
+cat <<'EOF' > /etc/apt/apt.conf.d/99dpkg-progress
+DPkg
+{
+    Progress-Fancy "0";
+};
+EOF
+
+cat <<'EOF' > /etc/apt/apt.conf.d/99dpkg-pre-install
+DPkg
+{
+    Pre-Install-Pkgs
+    {
+        "/usr/sbin/dpkg-preconfigure --apt || true" ;
+    };
+}
+EOF
 
 cat <<'EOF' > /etc/apt/apt.conf.d/99dpkg
 DPkg
@@ -159,10 +185,18 @@ DPkg
 };
 EOF
 
-chown root: /etc/apt/apt.conf.d/99dpkg
-chmod 644 /etc/apt/apt.conf.d/99dpkg
+cat <<'EOF' > /etc/apt/apt.conf.d/99cache
+Dir
+{
+    Cache
+    {
+        pkgcache "";
+        srcpkgcache "";
+    };
+};
+EOF
 
-cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/00exclude-documentation
+cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/99exclude-documentation
 path-exclude /usr/share/doc/*
 path-exclude /usr/share/man/*
 path-exclude /usr/share/info/*
@@ -171,16 +205,27 @@ path-exclude /usr/share/lintian/*
 path-exclude /usr/share/linda/*
 EOF
 
-chown root: /etc/dpkg/dpkg.cfg.d/00exclude-documentation
-chmod 644 /etc/dpkg/dpkg.cfg.d/00exclude-documentation
-
-cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/00locales
+cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/99locales
 path-exclude /usr/share/locale/*
 path-include /usr/share/locale/en*
 EOF
 
-chown root: /etc/dpkg/dpkg.cfg.d/00locales
-chmod 644 /etc/dpkg/dpkg.cfg.d/00locales
+cat <<'EOF' > /etc/dpkg/dpkg.cfg.d/99apt-speedup
+force-unsafe-io
+EOF
+
+chown root: /etc/apt/apt.conf.d/* \
+            /etc/dpkg/dpkg.cfg.d/*
+
+chmod 644 /etc/apt/apt.conf.d/* \
+          /etc/dpkg/dpkg.cfg.d/*
+
+# Make sure that Apt updates are consistent...
+dpkg-divert --divert /etc/apt/apt.conf.d/99apt-autoremove \
+            --rename /etc/apt/apt.conf.d/01autoremove
+
+dpkg-divert --divert /etc/apt/apt.conf.d/99vendor-ubuntu \
+            --rename /etc/apt/apt.conf.d/01-vendor-ubuntu
 
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get --assume-yes clean all
@@ -198,16 +243,16 @@ EOF
     chown root: /etc/apt/sources.list.d/precise-backports.list
     chmod 644 /etc/apt/sources.list.d/precise-backports.list
 
-    if [[ ! -f ${COMMON_FILES}/precise-backports.key ]]; then
+    if [[ ! -f "${COMMON_FILES}/precise-backports.key" ]]; then
         # Fetch Nate Carlson's PPA key from the key server.
         apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3DD9F856
     else
-        apt-key add ${COMMON_FILES}/precise-backports.key
+        apt-key add "${COMMON_FILES}/precise-backports.key"
     fi
 fi
 
 # Add fix for APT hash sum mismatch.
-if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+if [[ $UBUNTU_VERSION =~ ^(12|14) ]]; then
     cat <<EOF > /etc/apt/sources.list.d/apt-backport.list
 deb https://packagecloud.io/computology/apt-backport/ubuntu $UBUNTU_RELEASE main
 deb-src https://packagecloud.io/computology/apt-backport/ubuntu $UBUNTU_RELEASE main
@@ -216,19 +261,19 @@ EOF
     chown root: /etc/apt/sources.list.d/apt-backport.list
     chmod 644 /etc/apt/sources.list.d/apt-backport.list
 
-    if [[ ! -f ${COMMON_FILES}/apt-backport.key ]]; then
+    if [[ ! -f "${COMMON_FILES}/apt-backport.key" ]]; then
         # Fetch Computology's key from the key server.
-        wget --no-check-certificate -O ${COMMON_FILES}/apt-backport.key \
+        wget -O "${COMMON_FILES}/apt-backport.key" \
             https://packagecloud.io/computology/apt-backport/gpgkey
     fi
 
-    apt-key add ${COMMON_FILES}/apt-backport.key
+    apt-key add "${COMMON_FILES}/apt-backport.key"
 fi
 
 # By default, the "cloud-init" will override the default mirror when run as
 # Amazon EC2 instance, thus we replace this file only when building Vagrant
 # boxes.
-if [[ $AMAZON_EC2 == 'no' ]]; then
+if [[ -z $AMAZON_EC2 ]]; then
     # Render template overriding default list.
     eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" \
         > /etc/apt/sources.list
@@ -241,13 +286,13 @@ else
     # Allow some grace time for the "cloud-init" to finish
     # and to override the default package mirror.
     for n in {1..30}; do
-        echo "Waiting for cloud-init to finish ..."
+        echo 'Waiting for cloud-init to finish ...'
 
         if test -f /var/lib/cloud/instance/boot-finished; then
             break
         else
             # Wait a little longer every time.
-            sleep $(( 1 * $n ))
+            sleep $n
         fi
     done
 fi
@@ -259,7 +304,7 @@ if [[ -f /etc/update-manager/release-upgrades ]]; then
 fi
 
 # Update everything.
-apt-get --assume-yes update
+apt-get --assume-yes update 1>/dev/null
 
 export UCF_FORCE_CONFFNEW=1
 ucf --purge /boot/grub/menu.lst
@@ -282,15 +327,22 @@ if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
                 "linux-${package}-generic-lts-${UBUNTU_BACKPORT}" | \
                     sed -e 's/\-\+/\-/')
 
-        apt-get --assume-yes install $PACKAGE_NAME
+        apt-get --assume-yes install "$PACKAGE_NAME"
     done
 else
     # Add necessary depenencies.
-    apt-get --assume-yes install linux-headers-$(uname -r)
+    apt-get --assume-yes install "linux-headers-$(uname -r)"
 fi
 
 # Update everything ...
-apt-get --assume-yes dist-upgrade
+apt-get --assume-yes upgrade
+
+# Update everything else ...
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    apt-get --assume-yes full-upgrade
+else
+    apt-get --assume-yes dist-upgrade
+fi
 
 cat <<'EOF' > /etc/timezone
 Etc/UTC
@@ -301,13 +353,18 @@ chmod 644 /etc/timezone
 
 dpkg-reconfigure tzdata
 
-# This package is needed to suppprt English localisation correctly.
-apt-get --assume-yes install language-pack-en
+mkdir -p /var/lib/locales/supported.d
+chown -R root: /var/lib/locales/supported.d
+chmod -R 755 /var/lib/locales/supported.d
+
+# This package is needed to suppprt localisation correctly.
+apt-get --assume-yes install locales
 
 # Remove current version ...
 rm -f /usr/lib/locale/locale-archive
 
-cat <<'EOF' > /var/lib/locales/supported.d/en
+(
+    cat <<'EOF'
 en_US UTF-8
 en_US.UTF-8 UTF-8
 en_US.Latin1 ISO-8859-1
@@ -315,22 +372,25 @@ en_US.Latin9 ISO-8859-15
 en_US.ISO-8859-1 ISO-8859-1
 en_US.ISO-8859-15 ISO-8859-15
 EOF
+) | tee /var/lib/locales/supported.d/en \
+        /etc/locale.gen 1>/dev/null
 
 cat <<'EOF' > /var/lib/locales/supported.d/local
 en_US.UTF-8 UTF-8
 EOF
 
-chown root: /var/lib/locales/supported.d/{en,local}
-chmod 644 /var/lib/locales/supported.d/{en,local}
+chown root: /var/lib/locales/supported.d/{en,local} \
+            /etc/locale.gen
 
-locale-gen en_US.UTF-8
+chmod 644 /var/lib/locales/supported.d/{en,local} \
+          /etc/locale.gen
+
+dpkg-reconfigure locales
 
 update-locale \
     LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
     LANGUAGE="en_US.UTF-8:en_US:en"
-
-dpkg-reconfigure locales
 
 rm -f /etc/resolvconf/resolv.conf.d/head
 touch /etc/resolvconf/resolv.conf.d/head
@@ -338,8 +398,12 @@ touch /etc/resolvconf/resolv.conf.d/head
 chown root: /etc/resolvconf/resolv.conf.d/head
 chmod 644 /etc/resolvconf/resolv.conf.d/head
 
-NAME_SERVERS=( 8.8.8.8 4.2.2.2 )
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+NAME_SERVERS=(
+    '8.8.8.8' # Google
+    '4.2.2.2' # Level3
+)
+
+if [[ -n $AMAZON_EC2 ]]; then
     NAME_SERVERS=()
 fi
 
@@ -384,7 +448,7 @@ chmod 644 /etc/nsswitch.conf
 
 update-ca-certificates -v
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+if [[ -n $AMAZON_EC2 ]]; then
     # The cloud-init package available on Ubuntu 12.04 is too old,
     # and would fail with "None" being a data source.
     DATA_SOURCES=( NoCloud Ec2 None )
@@ -393,7 +457,7 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
     fi
 
     cat <<EOF > /etc/cloud/cloud.cfg.d/90_overrides.cfg
-datasource_list: [ $(IFS=',' ; echo "${DATA_SOURCES[*]}" | sed -e 's/,/, /g') ]
+datasource_list: [ $(join $',' "${DATA_SOURCES[@]}" | sed -e 's/,/, /g') ]
 EOF
 
     cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
@@ -441,7 +505,7 @@ if dpkg -s ntpdate &>/dev/null; then
     for option in '--dry-run -s -i' '-i'; do
         # Note: This is expected to fail to apply cleanly on a sufficiently
         # up-to-date version the ntpdate package.
-        if ! patch -l -t -p0 $option ${COMMON_FILES}/${PATCH_FILE}; then
+        if ! patch -l -t -p0 $option "${COMMON_FILES}/${PATCH_FILE}"; then
             break
         fi
     done
@@ -458,28 +522,36 @@ fi
 chown root: /srv
 chmod 755 /srv
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+if [[ -n $AMAZON_EC2 ]]; then
     # Disable Xen framebuffer driver causing 30 seconds boot delay.
 cat <<'EOF' > /etc/modprobe.d/blacklist-xen.conf
 blacklist xen_fbfront
 EOF
-
-    chown root: /etc/modprobe.d/blacklist-xen.conf
-    chmod 644 /etc/modprobe.d/blacklist-xen.conf
 fi
 
-cat <<'EOF' > /etc/modprobe.d/blacklist-legacy.conf
-blacklist floppy
-blacklist joydev
-blacklist lp
-blacklist ppdev
-blacklist parport
-blacklist psmouse
-blacklist serio_raw
+cat <<'EOF' > /etc/modprobe.d/blacklist-broken.conf
+install intel_rapl /bin/true
+blacklist intel_rapl
 EOF
 
-chown root: /etc/modprobe.d/blacklist-legacy.conf
-chmod 644 /etc/modprobe.d/blacklist-legacy.conf
+cat <<'EOF' > /etc/modprobe.d/blacklist-legacy.conf
+install floppy /bin/true
+blacklist floppy
+install joydev /bin/true
+blacklist joydev
+install lp /bin/true
+blacklist lp
+install ppdev /bin/true
+blacklist ppdev
+install parport /bin/true
+blacklist parport
+install psmouse /bin/true
+blacklist psmouse
+install serio_raw /bin/true
+blacklist serio_raw
+install parport_pc /bin/true
+blacklist parport_pc
+EOF
 
 cat <<'EOF' > /etc/modprobe.d/blacklist-conntrack.conf
 blacklist nf_conntrack_amanda
@@ -500,8 +572,42 @@ blacklist nf_conntrack_snmp
 blacklist nf_conntrack_tftp
 EOF
 
-chown root: /etc/modprobe.d/blacklist-conntrack.conf
-chmod 644 /etc/modprobe.d/blacklist-conntrack.conf
+cat <<'EOF' > /etc/modprobe.d/blacklist-security.conf
+install cramfs /bin/true
+blacklist cramfs
+install freevxfs /bin/true
+blacklist freevxfs
+install jffs2 /bin/true
+blacklist jffs2
+install hfs /bin/true
+blacklist hfs
+install hfsplus /bin/true
+blacklist hfsplus
+install squashfs /bin/true
+blacklist squashfs
+install udf /bin/true
+blacklist udf
+install vfat /bin/true
+blacklist vfat
+install dccp /bin/false
+blacklist dccp
+install sctp /bin/false
+blacklist sctp
+install rds /bin/false
+blacklist rds
+install tipc /bin/false
+blacklist tipc
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/blacklist-bluetooth.conf
+alias net-pf-31 off
+alias bluetooth off
+install bluetooth /bin/false
+blacklist bluetooth
+EOF
+
+chown root: /etc/modprobe.d/*
+chmod 644 /etc/modprobe.d/*
 
 # Prevent the lp and rtc modules from being loaded.
 sed -i -e \
@@ -509,19 +615,19 @@ sed -i -e \
     /etc/modules
 
 for package in procps sysfsutils; do
-    apt-get --assume-yes install $package
+    apt-get --assume-yes install "$package"
 done
 
 for directory in /etc/sysctl.d /etc/sysfs.d; do
     if [[ ! -d $directory ]]; then
-        mkdir -p $directory
-        chown root: $directory
-        chmod 755 $directory
+        mkdir -p "$directory"
+        chown root: "$directory"
+        chmod 755 "$directory"
     fi
 done
 
-find /etc/sysctl.d/*.conf -type f | \
-    xargs sed -i -e '/^#.*/d;/^$/d;s/\(\w\+\)=\(\w\+\)/\1 = \2/'
+find /etc/sysctl.d/*.conf -type f -print0 | \
+    xargs -0 sed -i -e '/^#.*/d;/^$/d;s/\(\w\+\)=\(\w\+\)/\1 = \2/'
 
 cat <<'EOF' > /etc/sysctl.conf
 #
@@ -557,7 +663,7 @@ net.ipv4.tcp_no_metrics_save = 1
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.tcp_slow_start_after_idle = 0
 net.ipv4.ip_local_port_range = 1024 65535
-$(if [[ $AMAZON_EC2 == 'yes' ]]; then
+$(if [[ -n $AMAZON_EC2 ]]; then
 echo 'net.ipv4.neigh.default.gc_thresh1 = 0'
 fi)
 EOF
@@ -601,6 +707,7 @@ kernel.randomize_va_space = 2
 kernel.perf_event_paranoid = 2
 kernel.yama.ptrace_scope = 1
 kernel.kexec_load_disabled = 1
+kernel.ftrace_enabled = 0
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-link-restrictions.conf
@@ -623,11 +730,11 @@ fs.file-max = 262144
 kernel.pid_max = 65535
 EOF
 
-chown -R root: /etc/sysctl.conf \
-               /etc/sysctl.d
+chown root: /etc/sysctl.conf \
+            /etc/sysctl.d
 
-chmod -R 644 /etc/sysctl.conf \
-             /etc/sysctl.d/*
+chmod 644 /etc/sysctl.conf \
+          /etc/sysctl.d/*
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     systemctl start procps
@@ -660,7 +767,7 @@ done
 # or "/dev/xvda" and there is reliable no way to know which one
 # is it going to be. Also, probably not an most ideal thing to do
 # on EC2, since the storage type may vay significantly.
-if [[ $AMAZON_EC2 == 'no' ]]; then
+if [[ -z $AMAZON_EC2 ]]; then
     for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); do
         NR_REQUESTS="block/${block}/queue/nr_requests = 256"
         SCHEDULER="block/${block}/queue/scheduler = noop"
@@ -680,9 +787,12 @@ EOF
     done
 fi
 
+# Transparent Huge Pages used to be set to "never",
+# albeit some workloads benefit from "madvise", thus
+# we set it now by default to "madvise".
 cat <<'EOF' > /etc/sysfs.d/transparent_hugepage.conf
-kernel/mm/transparent_hugepage/enabled = never
-kernel/mm/transparent_hugepage/defrag = never
+kernel/mm/transparent_hugepage/enabled = madvise
+kernel/mm/transparent_hugepage/defrag = madvise
 EOF
 
 # Disable KSM (Kernel Shared Memory) if present,
@@ -691,11 +801,11 @@ if [[ -f /sys/kernel/mm/ksm ]]; then
     echo 'kernel/mm/ksm/run = 0' > /etc/sysfs.d/ksm.conf
 fi
 
-chown -R root: /etc/sysfs.conf \
-               /etc/sysfs.d
+chown root: /etc/sysfs.conf \
+            /etc/sysfs.d/*
 
-chmod -R 644 /etc/sysfs.conf \
-             /etc/sysfs.d/*
+chmod 644 /etc/sysfs.conf \
+          /etc/sysfs.d/*
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     systemctl restart sysfsutils
@@ -711,20 +821,45 @@ cat <<EOS | sed -e 's/\s\+/\t/g' >> /etc/fstab
 proc /proc proc rw,nosuid,nodev,noexec,relatime,hidepid=2,gid=sudo 0 0
 EOS
 
-# The "/dev/shm" is going to be a symbolic link to "/run/shm" on
-# both the Ubuntu 12.04 and 14.04, and most likely onwards.
+# The "/run/shm" is going to be a symbolic link to "/dev/shm".
 cat <<EOS | sed -e 's/\s\+/\t/g' >> /etc/fstab
-none /run/shm tmpfs rw,nosuid,nodev,noexec,relatime 0 0
+tmpfs /dev/shm tmpfs rw,nosuid,nodev,noexec,relatime 0 0
 EOS
+
+ln -sf /dev/shm /run/shm
 
 chown root: /etc/fstab
 chmod 644 /etc/fstab
 
 # Remove support for logging to xconsole.
-for option in '/.*\/dev\/xconsole/,$d' '$d'; do
+for option in $'/.*\/dev\/xconsole/,$d' $'$d'; do
     sed -i -e $option \
         /etc/rsyslog.d/50-default.conf
 done
 
 chown root: /etc/rsyslog.d/50-default.conf
 chmod 644 /etc/rsyslog.d/50-default.conf
+
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    # A list of services we want to disable and mask in systemd,
+    # as these not only pose a security risk, but also delay the
+    # total boot time.
+    SERVICES_TO_MASK=(
+        'bluetooth.target'
+        'dev-hugepages.mount'
+        'dev-mqueue.mount'
+        'plymouth-quit-wait.service'
+        'plymouth-start.service'
+        'proc-sys-fs-binfmt_misc.automount'
+        'proc-sys-fs-binfmt_misc.mount'
+        'sys-fs-fuse-connections.mount'
+        'sys-kernel-config.mount'
+        'sys-kernel-debug.mount'
+    )
+
+    for service in "${SERVICES_TO_MASK[@]}"; do
+        for option in disable mask; do
+            systemctl "$option" "$service"
+        done
+    done
+fi

@@ -1,42 +1,25 @@
 #!/bin/bash
 
-#
-# python-pip.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
+source /var/tmp/helpers/default.sh
 
-# Refresh packages index only when needed.
-UPDATE_STAMP='/var/lib/apt/periodic/update-success-stamp'
-if [[ ! -f $UPDATE_STAMP ]] || \
-   (( $(date +%s) - $(date -r $UPDATE_STAMP +%s) > 900 )); then
-    apt-get --assume-yes update
-fi
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
 
 # Dependencies needed by a lot of Python eggs.
-PACKAGES=( python-dev libffi-dev libssl-dev libyaml-dev )
+PACKAGES=(
+    'python-dev'
+    'libffi-dev'
+    'libssl-dev'
+    'libyaml-dev'
+)
+
+apt_get_update
 
 for package in "${PACKAGES[@]}"; do
-    apt-get --assume-yes install $package
+    apt-get --assume-yes install "$package"
 done
 
 apt-get --assume-yes install python-setuptools
@@ -44,11 +27,29 @@ apt-get --assume-yes install python-setuptools
 # Remove current and rather old version.
 apt-get --assume-yes purge python-pip
 
-easy_install pip
+# The easy_install package available in Ubuntu 12.04 is too old,
+# and still uses old HTTP mirror which is no longer supported
+# by PyPi for retrieving an index. We temporarily change it to
+# facilitate installation.
+if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    eval HOME_DIRECTORY="~${USER}"
+
+    cat <<'EOF' > "${HOME_DIRECTORY}/.pydistutils.cfg"
+[easy_install]
+index-url = https://pypi.python.org/simple
+EOF
+
+    easy_install pip
+
+    rm -f "${HOME_DIRECTORY}/.pydistutils.cfg"
+else
+    easy_install pip
+fi
+
 pip install --upgrade pip
 
 for file in /usr/local/bin/pip*; do
-    ln -sf $file /usr/bin/${file##*/}
+    ln -sf "$file" "/usr/bin/${file##*/}"
 done
 
 # Update look-up table (to get new
@@ -67,5 +68,5 @@ pip install --upgrade virtualenv
 pip install --upgrade ndg-httpsclient
 
 for file in /usr/local/bin/easy_install*; do
-    ln -sf $file /usr/bin/${file##*/}
+    ln -sf "$file" "/usr/bin/${file##*/}"
 done
