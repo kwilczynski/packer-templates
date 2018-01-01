@@ -1,37 +1,17 @@
 #!/bin/bash
 
-#
-# docker.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
+
+source /var/tmp/helpers/default.sh
 
 readonly DOCKER_FILES='/var/tmp/docker'
+readonly UBUNTU_RELEASE=$(detect_ubuntu_release)
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
-# Get details about the Ubuntu release ...
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
-readonly UBUNTU_RELEASE=$(lsb_release -sc)
-
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
-
-[[ -d $DOCKER_FILES ]] || mkdir -p $DOCKER_FILES
+[[ -d $DOCKER_FILES ]] || mkdir -p "$DOCKER_FILES"
 
 cat <<EOF > /etc/apt/sources.list.d/docker.list
 deb https://apt.dockerproject.org/repo ubuntu-${UBUNTU_RELEASE} main
@@ -40,12 +20,14 @@ EOF
 chown root: /etc/apt/sources.list.d/docker.list
 chmod 644 /etc/apt/sources.list.d/docker.list
 
-if [[ ! -f ${DOCKER_FILES}/docker.key ]]; then
+if [[ ! -f "${DOCKER_FILES}/docker.key" ]]; then
     # Fetch Docker's PPA key from the key server.
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 2C52609D
 else
-    apt-key add ${DOCKER_FILES}/docker.key
+    apt-key add "${DOCKER_FILES}/docker.key"
 fi
+
+apt_get_update
 
 # Only refresh packages index from Docker's repository.
 apt-get --assume-yes update \
@@ -53,18 +35,24 @@ apt-get --assume-yes update \
     -o Dir::Etc::SourceParts='-' -o APT::Get::List-Cleanup='0'
 
 # Dependencies needed by Docker, etc.
-PACKAGES=( pciutils procps btrfs-tools xfsprogs git )
+PACKAGES=(
+    'pciutils'
+    'procps'
+    'btrfs-tools'
+    'xfsprogs'
+    'git'
+)
 
 if [[ -n $DOCKER_VERSION ]]; then
-    # The package name and version is now a little bit awkaward
-    # to work with e.g., docker-engine_1.10.0-0~trusty_amd64.deb.
-    PACKAGES+=( $(printf 'docker-engine=%s-0~%s' "${DOCKER_VERSION}" "${UBUNTU_RELEASE}") )
+    # The package name and version is now a little bit awkaward to work
+    # with e.g., docker-engine_17.05.0~ce-0~ubuntu-trusty_amd64.deb.
+    PACKAGES+=( $(printf 'docker-engine=%s~ce-0~ubuntu-%s' "$DOCKER_VERSION" "$UBUNTU_RELEASE") )
 else
-    PACKAGES+=( docker-engine )
+    PACKAGES+=( 'docker-engine' )
 fi
 
 for package in "${PACKAGES[@]}"; do
-    apt-get --assume-yes install $package
+    apt-get --assume-yes install "$package"
 done
 
 {
@@ -75,13 +63,29 @@ done
     fi
 } || true
 
+# Do not start Docker automatically when
+# running on Amazon EC2, as it might be
+# desirable to relocate the /var/lib/docker
+# on a separate mount point, etc.
+if [[ -n $AMAZON_EC2 ]]; then
+    {
+        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+            systemctl disable docker
+        else
+            update-rc.d -f docker disable
+            # Disable when using upstart.
+            echo 'manual' | sudo tee /etc/init/docker.override
+        fi
+    } || true
+fi
+
 if ! getent group docker &>/dev/null; then
     groupadd --system docker
 fi
 
 for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
-    if getent passwd $user &>/dev/null; then
-        usermod -aG docker $user
+    if getent passwd "$user" &>/dev/null; then
+        usermod -aG docker "$user"
     fi
 done
 
@@ -94,40 +98,51 @@ for file in docker docker-compose; do
         FILE_PATH='contrib/completion/bash'
     fi
 
-    if [[ ! -f ${DOCKER_FILES}/${file} ]]; then
-        wget --no-check-certificate -O ${DOCKER_FILES}/${file} \
-            https://raw.githubusercontent.com/docker/${REPOSITORY}/master/${FILE_PATH}/${file}
+    if [[ ! -f "${DOCKER_FILES}/${file}" ]]; then
+        wget -O "${DOCKER_FILES}/${file}" \
+            "https://raw.githubusercontent.com/docker/${REPOSITORY}/master/${FILE_PATH}/${file}"
     fi
 
-    cp -f ${DOCKER_FILES}/${file} \
-          /etc/bash_completion.d/${file}
+    cp -f "${DOCKER_FILES}/${file}" \
+          "/etc/bash_completion.d/${file}"
 
-    chown root: /etc/bash_completion.d/${file}
-    chmod 644 /etc/bash_completion.d/${file}
+    chown root: "/etc/bash_completion.d/${file}"
+    chmod 644 "/etc/bash_completion.d/${file}"
 done
-
-STORAGE_DRIVER='overlay2'
-if [[ $UBUNTU_VERSION == '12.04' ]]; then
-    # No support for overlay2 file system in the
-    # Linux kernel on older versions of Ubuntu.
-    STORAGE_DRIVER='overlay'
-fi
 
 sed -i -e \
     's/.*DOCKER_OPTS="\(.*\)"/DOCKER_OPTS="--config-file=\/etc\/docker\/daemon.json"/g' \
     /etc/default/docker
+
+# Shouldn't the package create this?
+if [[ ! -d /etc/docker ]]; then
+    mkdir -p /etc/docker
+    chown root: /etc/docker
+    chmod 755 /etc/docker
+fi
 
 # For now, the "userns-remap" option is disabled,
 # since it breaks almost everything at the moment.
 cat <<EOF > /etc/docker/daemon.json
 {
   "debug": false,
+$(if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    # No support for overlay2 file system in the
+    # Linux kernel on older versions of Ubuntu.
+    cat <<'EOS'
+  "graph": "/var/lib/docker",
+  "storage-driver": "aufs",
+EOS
+else
+    cat <<'EOS'
   "data-root": "/var/lib/docker",
-  "storage-driver": "${STORAGE_DRIVER}",
+  "storage-driver": "overlay2",
+EOS
+fi)
   "ipv6": false,
   "dns": [
     "8.8.8.8",
-    "4.4.2.2"
+    "4.2.2.2"
   ],
   "icc": false,
   "live-restore": true,
@@ -161,7 +176,7 @@ pip install --upgrade ndg-httpsclient
 if [[ -n $DOCKER_COMPOSE_VERSION ]]; then
     pip install \
         --install-option='--install-scripts=/usr/local/bin' \
-        docker-compose==${DOCKER_COMPOSE_VERSION}
+        docker-compose=="${DOCKER_COMPOSE_VERSION}"
 else
     pip install \
         --install-option='--install-scripts=/usr/local/bin' \
@@ -183,14 +198,16 @@ fi
 
 hash -r
 
-KERNEL_OPTIONS=( cgroup_enable=memory swapaccount=1 )
-readonly KERNEL_OPTIONS=$(echo "${KERNEL_OPTIONS[@]}")
+KERNEL_OPTIONS=(
+    'cgroup_enable=memory'
+    'swapaccount=1'
+)
 
 # Support both grub and grub2 style configuration.
-if grub-install --version | egrep -q '(1.9|2.0).+'; then
+if detect_grub2; then
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS}\"/" \
+        "s/GRUB_CMDLINE_LINUX=\"\(.*\)\"/GRUB_CMDLINE_LINUX=\"\1 ${KERNEL_OPTIONS[*]}\"/" \
         /etc/default/grub | \
             grep -E '^GRUB_CMDLINE_LINUX=' | \
                 sed -e 's/GRUB_CMDLINE_LINUX=\"\(.*\)\"/\1/' | \
@@ -202,7 +219,7 @@ if grub-install --version | egrep -q '(1.9|2.0).+'; then
 else
     # Remove any repeated (de-duplicate) Kernel options.
     OPTIONS=$(sed -e \
-        "s/^#\sdefoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS}/" \
+        "s/^#\sdefoptions=\(.*\)/# defoptions=\1 ${KERNEL_OPTIONS[*]}/" \
         /boot/grub/menu.lst | \
             grep -E '^#\sdefoptions=' | \
                 sed -e 's/.*defoptions=//' | \
@@ -225,12 +242,12 @@ grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
 # This would normally be on a separate volume,
 # and most likely formatted to use "btrfs".
 for directory in /srv/docker /var/lib/docker; do
-    [[ -d $directory ]] || mkdir -p $directory
+    [[ -d $directory ]] || mkdir -p "$directory"
 
-    rm -rf ${directory}/*
+    rm -rf ${directory:?}/*
 
-    chown root: $directory
-    chmod 755 $directory
+    chown root: "$directory"
+    chmod 755 "$directory"
 done
 
 # A bind-mount for the Docker root directory.

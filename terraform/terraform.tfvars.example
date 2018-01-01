@@ -1,0 +1,5 @@
+region = "eu-west-1"
+# stack_name = "packer"
+# allowed_account_ids = []
+vpc_cidr_block = "172.16.0.0/16"
+#allowed_cidr_blocks = ["0.0.0.0/0"]

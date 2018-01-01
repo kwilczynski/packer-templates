@@ -1,48 +1,29 @@
 #!/bin/bash
 
-#
-# guest-additions.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
+
+source /var/tmp/helpers/default.sh
 
 readonly VMWARE_FILES='/var/tmp/vmware'
-
-# Get details about the Ubuntu release ...
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
 
 # As Packer will upload guest additions to the home directory of the same
 # user as the one used for connecting via SSH, we need to check which user
 # is it this time.
 SYSTEM_USER='vagrant'
-if ! getent passwd $SYSTEM_USER &>/dev/null; then
+if ! getent passwd "$SYSTEM_USER" &>/dev/null; then
     SYSTEM_USER='ubuntu'
 fi
 
 case "$PACKER_BUILDER_TYPE" in
     virtualbox-iso|virtualbox-ovf)
-        readonly VBOX_VERSION=$(cat /home/${SYSTEM_USER}/.virtualbox_version)
+        readonly VBOX_VERSION=$(cat "/home/${SYSTEM_USER}/.virtualbox_version")
 
         mkdir -p /tmp/virtualbox
 
         mount -t iso9660 -o loop,ro \
-            /home/${SYSTEM_USER}/VBoxGuestAdditions_${VBOX_VERSION}.iso \
+            "/home/${SYSTEM_USER}/VBoxGuestAdditions_${VBOX_VERSION}.iso" \
             /tmp/virtualbox
 
         export REMOVE_INSTALLATION_DIR=0
@@ -50,8 +31,8 @@ case "$PACKER_BUILDER_TYPE" in
 
         umount /tmp/virtualbox
 
-        ln -s -f \
-            /opt/VBoxGuestAdditions-${VBOX_VERSION}/lib/VBoxGuestAdditions \
+        ln -sf \
+            "/opt/VBoxGuestAdditions-${VBOX_VERSION}/lib/VBoxGuestAdditions" \
             /usr/lib/VBoxGuestAdditions
 
         rm -rf /home/${SYSTEM_USER}/.{vbox,virtualbox}_version \
@@ -61,24 +42,29 @@ case "$PACKER_BUILDER_TYPE" in
         for service in vboxadd vboxadd-x11; do
             {
                 if [[ $UBUNTU_VERSION == '16.04' ]]; then
-                    systemctl stop $service;
-                    systemctl disable $service;
+                    for option in stop disable; do
+                        systemctl "$option" "$service";
+                    done
                 else
-                    service $service stop;
-                    update-rc.d -f $service disable;
+                    service "$service" stop;
+                    update-rc.d -f "$service" disable;
                 fi
             } || true
         done
 
         # Make sure that drivers are loaded on boot.
         {
-          echo "$(cat /etc/modules | grep -vE '^#')";
+          grep -vE '^#' /etc/modules;
           echo "vboxsf";
           echo "vboxguest";
-        } | sed -e '/^$/d' > /etc/modules
+        } | sed -e '/^$/d' > /tmp/modules
+
+        cp /tmp/modules /etc/modules
 
         chmod 644 /etc/modules
         chown root: /etc/modules
+
+        rm -f /tmp/modules
 
         # Make sure that the symbolic link is in place...
         if [[ -d /etc/modules-load.d ]]; then
@@ -93,15 +79,15 @@ case "$PACKER_BUILDER_TYPE" in
         # see: https://github.com/rasa/vmware-tools-patches
         PATCH_FILE='vmhgfs-d_alias-kernel-3.18.1-tools-9.9.0.patch'
 
-        [[ -d $VMWARE_FILES ]] || mkdir -p $VMWARE_FILES
-        if [[ ! -f ${VMWARE_FILES}/${PATCH_FILE} ]]; then
-            wget --no-check-certificate -O ${VMWARE_FILES}/${PATCH_FILE} \
-                https://raw.githubusercontent.com/rasa/vmware-tools-patches/master/patches/vmhgfs/04-${PATCH_FILE}
+        [[ -d $VMWARE_FILES ]] || mkdir -p "$VMWARE_FILES"
+        if [[ ! -f "${VMWARE_FILES}/${PATCH_FILE}" ]]; then
+            wget -O "${VMWARE_FILES}/${PATCH_FILE}" \
+                "https://raw.githubusercontent.com/rasa/vmware-tools-patches/master/patches/vmhgfs/04-${PATCH_FILE}"
         fi
 
         mkdir -p /tmp/vmware /tmp/vmware-archive
 
-        mount -t iso9660 -o loop,ro /home/${SYSTEM_USER}/linux.iso /tmp/vmware
+        mount -t iso9660 -o loop,ro "/home/${SYSTEM_USER}/linux.iso" /tmp/vmware
 
         tar -xzf /tmp/vmware/VMwareTools-*.tar.gz -C /tmp/vmware-archive
         pushd /tmp/vmware-archive/vmware-tools-distrib/lib/modules/source &>/dev/null
@@ -114,7 +100,7 @@ case "$PACKER_BUILDER_TYPE" in
         for option in '--dry-run -s -i' '-i'; do
             # Note: This is expected to fail to apply cleanly on a sufficiently
             # up-to-date version of VMWare Tools.
-            if ! patch -l -t -p1 $option ${VMWARE_FILES}/${PATCH_FILE}; then
+            if ! patch -l -t -p1 $option "${VMWARE_FILES}/${PATCH_FILE}"; then
                 break
             fi
         done
@@ -137,7 +123,7 @@ case "$PACKER_BUILDER_TYPE" in
 
         rm -rf /tmp/vmware \
                /tmp/vmware-archive \
-               ${VMWARE_FILES}/${PATCH_FILE}
+               "${VMWARE_FILES:?}/${PATCH_FILE}"
     ;;
 
     *)
@@ -145,4 +131,5 @@ case "$PACKER_BUILDER_TYPE" in
     ;;
 esac
 
-rm -f /tmp/*.iso /home/${SYSTEM_USER}/*.iso
+rm -f /tmp/*.iso \
+      "/home/${SYSTEM_USER:?}/*.iso"

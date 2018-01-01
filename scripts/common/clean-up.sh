@@ -1,51 +1,25 @@
 #!/bin/bash
 
-#
-# clean-up.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
+
+source /var/tmp/helpers/default.sh
 
 readonly COMMON_FILES='/var/tmp/common'
-
-# Get details about the Ubuntu release ...
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
-
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
-
-# This is only applicable when building Amazon EC2 image (AMI).
-AMAZON_EC2='no'
-if wget -q --timeout 1 --wait 1 --tries 2 --spider http://169.254.169.254/ &>/dev/null; then
-    AMAZON_EC2='yes'
-fi
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     systemctl daemon-reload
 fi
 
-for service in syslog syslog-ng rsyslog; do
+for service in syslog syslog-ng rsyslog systemd-journald; do
     {
         if [[ $UBUNTU_VERSION == '16.04' ]]; then
-            systemctl stop $service
+            systemctl stop "$service"
         else
-            service $service stop
+            service "$service" stop
         fi
     } || true
 done
@@ -59,56 +33,79 @@ dpkg -l | grep '^rc' | awk '{ print $2 }' | \
     xargs apt-get --assume-yes purge
 
 # Remove not really needed Kernel source packages.
-dpkg -l | awk '{ print $2 }' | grep -E 'linux-(source|headers)-[0-9]+' | \
-    grep -v "$(uname -r | sed -e 's/\-generic//;s/\-lowlatency//')" | \
-    xargs apt-get --assume-yes purge
+dpkg -l | awk '{ print $2 }' | \
+    grep -E '(linux-(source|headers)-[0-9]+|linux-aws-(source|headers)-[0-9]+)' | \
+        grep -v "$(uname -r | sed -e 's/\-generic//;s/\-lowlatency//;s/\-aws//')" | \
+            xargs apt-get --assume-yes purge
 
 # Remove old Kernel images that are not the current one.
-dpkg -l | awk '{ print $2 }' | grep -E 'linux-image-.*-generic' | \
-    grep -v $(uname -r) | xargs apt-get --assume-yes purge
+dpkg -l | awk '{ print $2 }' | \
+    grep -E 'linux-image-.*-(generic|aws)' | \
+        grep -v "$(uname -r)" | xargs apt-get --assume-yes purge
 
-# Remove old Kernel images that are not the current one.
-dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | grep -vE '(libc|gcc)' | \
-    xargs apt-get --assume-yes purge
+# Remove development packages.
+dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | \
+    grep -vE "(libc|$(dpkg -s g++ &>/dev/null && echo 'libstdc++')|gcc)" | \
+        xargs apt-get --assume-yes purge
 
 # A list of packages to be purged.
-PACKAGES_TO_PURGE=( $(cat ${COMMON_FILES}/packages-purge.list 2>/dev/null) )
+PACKAGES_TO_PURGE=( $(cat "${COMMON_FILES}/packages-purge.list" 2>/dev/null) )
 
 # Keep these packages when building an Instance Store type image (needed by
 # the Amazon EC2 AMI Tools), and remove otherwise.
-if [[ $AMAZON_EC2 == 'no' ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
+if [[ -z $AMAZON_EC2 ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     # Remove Ruby ONLY when any sensible version was not installed, or
     # when the Itamae Ruby gem (and its dependencies) were not installed.
     if [[ -z $RUBY_VERSION ]] || [[ -z $ITAMAE_VERSION ]] && \
           ! ( apt-cache policy | grep -qF 'brightbox' )
     then
         PACKAGES_TO_PURGE+=(
-          ^libruby[0-9]\.
-          ^ruby[0-9]\.
-          ^ruby-switch$
-          ^rubygems-integration$
+            '^libruby[0-9]\.'
+            '^ruby[0-9]\.'
+            '^ruby-switch$'
+            '^rubygems-integration$'
         )
     fi
-    PACKAGES_TO_PURGE+=( kpartx parted unzip )
+    PACKAGES_TO_PURGE+=(
+        'kpartx'
+        'parted'
+        'unzip'
+    )
 fi
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+if [[ -n $AMAZON_EC2 ]]; then
   # Remove packages that are definitely not needed in EC2 ...
-  PACKAGES_TO_PURGE+=( ^wireless-* crda iw linux-firmware mdadm open-iscsi )
+    PACKAGES_TO_PURGE+=(
+        '^wireless-*'
+        'crda'
+        'iw'
+        'linux-firmware'
+        'mdadm'
+        'open-iscsi'
+        'lvm2'
+    )
 fi
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
   # Remove LXD and LXCFS as Docker will be installed.
-  PACKAGES_TO_PURGE+=( lxd lxcfs )
+    PACKAGES_TO_PURGE+=(
+        'lxd'
+        'lxcfs'
+    )
 fi
 
 for package in "${PACKAGES_TO_PURGE[@]}"; do
-    apt-get --assume-yes purge $package || true
+    apt-get --assume-yes purge "$package" 2>/dev/null || true
 done
 
 for option in '--purge autoremove' 'autoclean' 'clean all'; do
     apt-get --assume-yes $option
 done
+
+# Regenerate Apt overrides for the kernel.
+if [[ -f /etc/kernel/postinst.d/apt-auto-removal ]]; then
+    bash /etc/kernel/postinst.d/apt-auto-removal
+fi
 
 # Keep the "tty1" virtual terminal to allow access in a case
 # of the network connection being down and/or inaccessible.
@@ -122,28 +119,33 @@ sed -i -e \
 
 # Disable the Ubuntu splash screen (during boot time).
 for file in /etc/init/plymouth*.conf; do
-    dpkg-divert --rename $file
+    dpkg-divert --rename "$file"
 done
 
 # Disable synchronization of the system clock
 # with the hardware clock (CMOS).
 for file in /etc/init/hwclock*.conf; do
-    dpkg-divert --rename $file
+    dpkg-divert --rename "$file"
 done
 
 # No need to automatically adjust the CPU scheduler.
 {
     if [[ $UBUNTU_VERSION == '16.04' ]]; then
-        systemctl stop ondemand
-        systemctl disable ondemand
+        for option in stop disable; do
+            systemctl "$option" ondemand || true
+        done
     else
         service ondemand stop
         update-rc.d -f ondemand disable
     fi
 } || true
 
-# Disabled for now, as it breaks the "initscripts" package post-install job.
-# dpkg-divert --rename /etc/init.d/ondemand
+dpkg-divert --rename /etc/init.d/ondemand
+
+rm -f /usr/sbin/policy-rc.d
+
+rm -f /.dockerenv \
+      /.dockerinit
 
 rm -f /etc/blkid.tab \
       /dev/.blkid.tab
@@ -177,19 +179,19 @@ rm -rf /root/.cache \
        /root/*
 
 for user in vagrant ubuntu; do
-    if getent passwd $user &>/dev/null; then
-        rm -f /home/${user}/.bash_history \
-              /home/${user}/.rnd* \
-              /home/${user}/.hushlogin \
-              /home/${user}/*.tar \
-              /home/${user}/.*_history \
-              /home/${user}/.lesshst \
-              /home/${user}/.gemrc
+    if getent passwd "$user" &>/dev/null; then
+        rm -f /home/${user:?}/.bash_history \
+              /home/${user:?}/.rnd* \
+              /home/${user:?}/.hushlogin \
+              /home/${user:?}/*.tar \
+              /home/${user:?}/.*_history \
+              /home/${user:?}/.lesshst \
+              /home/${user:?}/.gemrc
 
-        rm -rf /home/${user}/.cache \
-               /home/${user}/.{gem,gems} \
-               /home/${user}/.vim* \
-               /home/${user}/*
+        rm -rf /home/${user:?}/.cache \
+               /home/${user:?}/.{gem,gems} \
+               /home/${user:?}/.vim* \
+               /home/${user:?}/*
     fi
 done
 
@@ -197,10 +199,11 @@ rm -rf /etc/lvm/cache/.cache
 
 # Clean if there are any Python software installed there.
 if ls /opt/*/share &>/dev/null; then
-    find /opt/*/share -type d -name 'man' -o -name 'doc' -exec rm -rf '{}' \;
+    find /opt/*/share -type d \( -name 'man' -o -name 'doc' \) -print0 | \
+        xargs -0 rm -rf
 fi
 
-if [[ $AMAZON_EC2 == 'no' ]]; then
+if [[ -z $AMAZON_EC2 ]]; then
     # VMWare uses DHCP behind the scene, thus we need to remove
     # the host name entry as it's not going to be valid any more
     # after the machine will be brought up again in the future.
@@ -223,6 +226,12 @@ fi
 
 rm -rf /usr/share/{doc,man}/* \
        /usr/local/share/{doc,man}
+
+rm -rf /usr/share/groff/* \
+       /usr/share/info/* \
+       /usr/share/lintian/* \
+       /usr/share/linda/* \
+       /usr/share/bug/*
 
 sed -i -e \
     '/^.\+fd0/d;/^.\*floppy0/d' \
@@ -258,19 +267,21 @@ rm -rf /var/lib/cloud/data/scripts \
 rm -rf /var/log/docker \
        /var/run/docker.sock
 
+rm -rf /var/log/unattended-upgrades
+
 # Prevent storing of the MAC address as part of the network
 # interface details saved by systemd/udev, and disable support
 # for the Predictable (or "consistent") Network Interface Names.
 UDEV_RULES=(
-    70-persistent-net.rules
-    75-persistent-net-generator.rules
-    80-net-setup-link.rules
-    80-net-name-slot.rules
+    '70-persistent-net.rules'
+    '75-persistent-net-generator.rules'
+    '80-net-setup-link.rules'
+    '80-net-name-slot.rules'
 )
 
 for rule in "${UDEV_RULES[@]}"; do
-    rm -f /etc/udev/rules.d/${rule}
-    ln -sf /dev/null /etc/udev/rules.d/${rule}
+    rm -f "/etc/udev/rules.d/${rule}"
+    ln -sf /dev/null "/etc/udev/rules.d/${rule}"
 done
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
@@ -283,7 +294,7 @@ rm -rf /dev/.udev \
        /var/lib/{dhcp,dhcp3}/* \
        /var/lib/dhclient/*
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
+if [[ -n $AMAZON_EC2 ]]; then
     # Get rid of this file, alas clout-init will probably
     # create it again automatically so that it can wreck
     # network configuration. These files, sadly cannot be
@@ -291,10 +302,9 @@ if [[ $AMAZON_EC2 == 'yes' ]]; then
     # would change permission of the device node to 0644,
     # which is disastrous, every time during the system
     # startup.
-    rm -f \
-      /etc/network/interfaces.d/50-cloud-init.cfg \
-      /etc/systemd/network/50-cloud-init-eth0.link \
-      /etc/udev/rules.d/70-persistent-net.rules
+    rm -f /etc/network/interfaces.d/50-cloud-init.cfg \
+          /etc/systemd/network/50-cloud-init-eth0.link \
+          /etc/udev/rules.d/70-persistent-net.rules
 
     pushd /etc/network/interfaces.d &>/dev/null
     mknod .null c 1 3
@@ -312,33 +322,38 @@ mkdir -p /tmp/locale
 
 for directory in /usr/share/locale /usr/share/locale-langpack; do
     for locale in en en@boldquot en_US; do
-        LOCALE_PATH=${directory}/${locale}
-        if [[ -d $LOCALE_PATH ]]; then
-            mv $LOCALE_PATH /tmp/locale/
+        LOCALE_PATH="${directory}/${locale}"
+        if [[ -d "$LOCALE_PATH" ]]; then
+            mv "$LOCALE_PATH" /tmp/locale/
         fi
     done
 
-    rm -rf ${directory}/*
+    rm -rf ${directory:?}/*
 
-    if [[ -d $directory ]]; then
-        mv /tmp/locale/* ${directory}/
+    if [[ -d "$directory" ]]; then
+        mv /tmp/locale/* "${directory:?}/"
     fi
 done
 
 rm -rf /tmp/locale
 
-find /etc /var /usr -type f -name '*~' -exec rm -f '{}' \;
-find /var/log /var/cache /var/lib/apt -type f -exec rm -rf '{}' \;
+find /etc /var /usr -type f -name '*~' -print0 | \
+    xargs -0 rm -f
 
-if [[ $AMAZON_EC2 == 'yes' ]]; then
-    find /etc /root /home -type f -name 'authorized_keys' -exec rm -f '{}' \;
+find /var/log /var/cache /var/lib/apt -type f -print0 | \
+    xargs -0 rm -f
+
+if [[ -n $AMAZON_EC2 ]]; then
+    find /etc /root /home -type f -name 'authorized_keys' -print0 | \
+        xargs -0 rm -f
 else
   # Only the Vagrant user should keep its SSH key. Everything
   # else will either use the user left form the image creation
   # time, or a new key will be fetched and stored by means of
   # cloud-init, etc.
   if ! getent passwd vagrant &> /dev/null; then
-      find /etc /root /home -type f -name 'authorized_keys' -exec rm -f '{}' \;
+      find /etc /root /home -type f -name 'authorized_keys' -print0 | \
+          xargs -0 rm -f
   fi
 fi
 
@@ -348,11 +363,19 @@ mkdir -p /var/lib/apt/periodic \
 chown -R root: /var/lib/apt
 chmod -R 755 /var/lib/apt
 
+# Re-create empty directories for system manuals,
+# to stop certain package diversions from breaking.
+mkdir -p /usr/share/man/man{1..8}
+
+chown -R root: /usr/share/man
+chmod -R 755 /usr/share/man
+
 # Newer version of Ubuntu introduce a dedicated
 # "_apt" user, which owns the temporary files.
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     chown _apt: /var/lib/apt/lists/partial
 fi
+
 apt-cache gencaches
 
 touch /var/log/{lastlog,wtmp,btmp}

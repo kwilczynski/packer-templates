@@ -1,35 +1,13 @@
 #!/bin/bash
 
-#
-# packages.sh
-#
-# Copyright 2016-2017 Krzysztof Wilczynski
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 set -e
 
-export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-# Get details about the Ubuntu release ...
-readonly UBUNTU_VERSION=$(lsb_release -r | awk '{ print $2 }')
+source /var/tmp/helpers/default.sh
 
-readonly HOSTNAME="ubuntu$(echo $UBUNTU_VERSION | tr -d '.')"
+readonly HOSTNAME="ubuntu$(detect_ubuntu_version | tr -d '.')"
 readonly FQDN="${HOSTNAME}.localdomain"
-
-export DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical
-export DEBCONF_NONINTERACTIVE_SEEN=true
 
 (
     cat <<EOF
@@ -37,6 +15,7 @@ postfix postfix/bad_recipient_delimiter note
 postfix postfix/chattr boolean false
 postfix postfix/db_upgrade_warning boolean true
 postfix postfix/default_transport string error
+postfix postfix/relay_transport string error
 postfix postfix/destinations string $HOSTNAME, $FQDN, localhost.localdomain, localhost
 postfix postfix/dynamicmaps_upgrade_warning boolean
 postfix postfix/inet_interfaces string loopback-only
@@ -55,13 +34,13 @@ postfix postfix/nqmgr_upgrade_warning boolean
 postfix postfix/procmail boolean false
 postfix postfix/protocols select ipv4
 postfix postfix/recipient_delimiter string +
-postfix postfix/relay_transport string error
 postfix postfix/relayhost string
 postfix postfix/retry_upgrade_warning boolean
 postfix postfix/rfc1035_violation boolean false
 postfix postfix/root_address string
 postfix postfix/tlsmgr_upgrade_warning boolean
 postfix postfix/transport_map_warning note
+postfix postfix/smtpd_use_tls boolean false
 EOF
 ) | debconf-set-selections
 
@@ -95,11 +74,12 @@ EOF
 chown root: /etc/aliases
 chmod 644 /etc/aliases
 
-echo $FQDN > /etc/mailname
+echo "$FQDN" > /etc/mailname
 
 chown root: /etc/mailname
 chmod 644 /etc/mailname
 
+apt_get_update
 apt-get --assume-yes install postfix
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
@@ -125,15 +105,15 @@ sed -i -e \
     /etc/postfix/main.cf
 
 sed -i -e \
-    's/^.*smtpd_banner.*/smtpd_banner = $myhostname ESMTP/' \
+    $'s/^.*smtpd_banner.*/smtpd_banner = $myhostname ESMTP/' \
     /etc/postfix/main.cf
 
 newaliases
 
 for action in restart stop; do
   if [[ $UBUNTU_VERSION == '16.04' ]]; then
-    systemctl $action postfix
+    systemctl "$action" postfix
   else
-    service postfix $action
+    service postfix "$action"
   fi
 done

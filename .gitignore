@@ -85,3 +85,9 @@ coverage
 packer*.log
 virtualfloppy.vfd
 packer_cache
+
+*.tfvars
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+.terraform

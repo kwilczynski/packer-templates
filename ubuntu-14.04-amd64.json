@@ -6,6 +6,7 @@
     "releases_mirror": "releases.ubuntu.com",
     "archive_mirror": "archive.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
+    "zfs": "false",
     "ruby": "false",
     "ruby_version": "{{env `RUBY_VERSION`}}",
     "itamae": "false",
@@ -20,18 +21,22 @@
     "account_id": "{{env `AWS_ACCOUNT_ID`}}",
     "access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "token": "{{env `AWS_SESSION_TOKEN`}}",
     "x509_key_path": "{{env `EC2_PRIVATE_KEY`}}",
     "x509_cert_path": "{{env `EC2_CERT`}}",
     "region": "{{env `AWS_DEFAULT_REGION`}}",
     "vpc_id": "{{env `EC2_VPC_ID`}}",
     "subnet_id": "{{env `EC2_SUBNET_ID`}}",
+    "security_group_id": "{{env `AWS_SECURITY_GROUP_ID`}}",
     "s3_bucket": "{{env `S3_BUCKET`}}",
     "instance_type": "m3.medium",
+    "spot_price": "auto",
     "ena_support": "false",
     "sriov_support": "false",
-    "encrypt_boot": "true",
+    "encrypt_boot": "false",
     "source_ami": "{{env `EC2_SOURCE_AMI`}}",
-    "headless": "true"
+    "headless": "true",
+    "debug": "{{env `PACKER_DEBUG`}}"
   },
   "description": "{{user `description`}}",
   "builders": [
@@ -178,10 +183,14 @@
       "ami_description": "{{user `description`}}",
       "access_key": "{{user `access_key`}}",
       "secret_key": "{{user `secret_key`}}",
+      "token": "{{user `token`}}",
       "region": "{{user `region`}}",
       "vpc_id": "{{user `vpc_id`}}",
       "subnet_id": "{{user `subnet_id`}}",
+      "security_group_id": "{{user `security_group_id`}}",
       "instance_type": "{{user `instance_type`}}",
+      "spot_price": "{{user `spot_price`}}",
+      "spot_price_auto_product": "Linux/UNIX (Amazon VPC)",
       "ena_support": "{{user `ena_support`}}",
       "sriov_support": "{{user `sriov_support`}}",
       "source_ami": "{{user `source_ami`}}",
@@ -209,8 +218,12 @@
           "delete_on_termination": true
         }
       ],
+      "run_tags": {
+        "Name": "packer_{{user `name`}}-{{timestamp}}"
+      },
       "tags": {
         "Name": "{{user `name`}}",
+        "Description": "{{user `description`}}",
         "Version": "{{user `version`}}",
         "CreationDate": "{{isotime \"Mon Jan _2 15:04:05 UTC 2006\"}}",
         "Architecture": "x86_64",
@@ -224,12 +237,14 @@
       "account_id": "{{user `account_id`}}",
       "access_key": "{{user `access_key`}}",
       "secret_key": "{{user `secret_key`}}",
+      "token": "{{user `token`}}",
       "x509_key_path": "{{user `x509_key_path`}}",
       "x509_cert_path": "{{user `x509_cert_path`}}",
       "x509_upload_path": "/var/tmp",
       "region": "{{user `region`}}",
       "vpc_id": "{{user `vpc_id`}}",
       "subnet_id": "{{user `subnet_id`}}",
+      "security_group_id": "{{user `security_group_id`}}",
       "s3_bucket": "{{if ne (user `s3_bucket`) `` }}{{user `s3_bucket`}}{{else}}{{end}}/{{user `name`}}-{{timestamp}}",
       "instance_type": "{{user `instance_type`}}",
       "ena_support": "{{user `ena_support`}}",
@@ -254,8 +269,12 @@
       "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
       "ssh_username": "ubuntu",
       "encrypt_boot": "{{user `encrypt_boot`}}",
+      "run_tags": {
+        "Name": "packer_{{user `name`}}-{{timestamp}}"
+      },
       "tags": {
         "Name": "{{user `name`}}",
+        "Description": "{{user `description`}}",
         "Version": "{{user `version`}}",
         "CreationDate": "{{isotime \"Mon Jan _2 15:04:05 UTC 2006\"}}",
         "Architecture": "x86_64",
@@ -266,7 +285,22 @@
   "provisioners": [
     {
       "type": "file",
+      "source": "scripts/helpers",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
       "source": "files/common",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
+      "source": "files/openssl",
+      "destination": "/var/tmp"
+    },
+    {
+      "type": "file",
+      "source": "files/zfs",
       "destination": "/var/tmp"
     },
     {
@@ -321,13 +355,14 @@
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
-      "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash '{{ .Path }}'",
+      "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -H -S -E bash {{if eq (user `debug`) `true` }}-xv{{end}} '{{ .Path }}'",
       "expect_disconnect": "true",
       "scripts": [
         "scripts/vagrant/hostname.sh",
         "scripts/common/update.sh",
         "scripts/common/packages.sh",
         "scripts/vagrant/packages.sh",
+        "scripts/common/openssl.sh",
         "scripts/common/sshd.sh",
         "scripts/vagrant/motd.sh",
         "scripts/common/motd.sh",
@@ -340,6 +375,7 @@
         "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
+        "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
         "scripts/common/sudoers.sh",
         "scripts/vagrant/grub.sh",
         "scripts/common/clean-up.sh",
@@ -369,7 +405,7 @@
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
       ],
-      "execute_command": "{{ .Vars }} sudo -H -S -E -n bash '{{ .Path }}'",
+      "execute_command": "{{ .Vars }} sudo -H -S -E -n bash {{if eq (user `debug`) `true` }}-xv{{end}} '{{ .Path }}'",
       "expect_disconnect": "true",
       "override": {
         "amazon-ebs": {
@@ -377,6 +413,7 @@
             "scripts/ec2/hostname.sh",
             "scripts/common/update.sh",
             "scripts/common/packages.sh",
+            "scripts/common/openssl.sh",
             "scripts/common/sshd.sh",
             "scripts/ec2/motd.sh",
             "scripts/common/motd.sh",
@@ -386,11 +423,12 @@
             "scripts/common/networking.sh",
             "scripts/ec2/networking.sh",
             "scripts/common/python-pip.sh",
+            "scripts/ec2/awscli.sh",
+            "scripts/ec2/aws-cfn-bootstrap.sh",
             "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
-            "scripts/common/awscli.sh",
-            "scripts/ec2/aws-cfn-bootstrap.sh",
+            "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
             "scripts/common/clean-up.sh",
             "scripts/common/sudoers.sh",
             "scripts/ec2/grub.sh"
@@ -401,6 +439,8 @@
             "scripts/ec2/hostname.sh",
             "scripts/common/update.sh",
             "scripts/common/packages.sh",
+            "scripts/common/openssl.sh",
+            "scripts/ec2/ec2-ami-tools.sh",
             "scripts/common/sshd.sh",
             "scripts/ec2/motd.sh",
             "scripts/common/motd.sh",
@@ -408,13 +448,13 @@
             "scripts/common/disable-ipv6.sh",
             "scripts/common/networking.sh",
             "scripts/ec2/networking.sh",
-            "scripts/ec2/ec2-ami-tools.sh",
             "scripts/common/python-pip.sh",
+            "scripts/ec2/awscli.sh",
+            "scripts/ec2/aws-cfn-bootstrap.sh",
             "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
-            "scripts/common/awscli.sh",
-            "scripts/ec2/aws-cfn-bootstrap.sh",
+            "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
             "scripts/common/clean-up.sh",
             "scripts/common/sudoers.sh",
             "scripts/ec2/grub.sh"
