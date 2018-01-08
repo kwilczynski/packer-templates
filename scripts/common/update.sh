@@ -742,10 +742,6 @@ else
     service procps start
 fi
 
-[[ -d /etc/sysfs.d ]] || mkdir -p /etc/sysfs.d
-chown root: /etc/sysfs.d
-chmod 755 /etc/sysfs.d
-
 cat <<'EOF' > /etc/sysfs.d/clock_source.conf
 devices/system/clocksource/clocksource0/current_clocksource = tsc
 EOF
