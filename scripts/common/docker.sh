@@ -14,18 +14,19 @@ readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 [[ -d $DOCKER_FILES ]] || mkdir -p "$DOCKER_FILES"
 
 cat <<EOF > /etc/apt/sources.list.d/docker.list
-deb https://apt.dockerproject.org/repo ubuntu-${UBUNTU_RELEASE} main
+deb [arch=amd64] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable
 EOF
 
 chown root: /etc/apt/sources.list.d/docker.list
 chmod 644 /etc/apt/sources.list.d/docker.list
 
 if [[ ! -f "${DOCKER_FILES}/docker.key" ]]; then
-    # Fetch Docker's PPA key from the key server.
-    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 2C52609D
-else
-    apt-key add "${DOCKER_FILES}/docker.key"
+    # Download key directly from Docker project.
+    wget -O "${DOCKER_FILES}/docker.key" \
+        "https://download.docker.com/linux/ubuntu/gpg"
 fi
+
+apt-key add "${DOCKER_FILES}/docker.key"
 
 apt_get_update
 
@@ -45,10 +46,12 @@ PACKAGES=(
 
 if [[ -n $DOCKER_VERSION ]]; then
     # The package name and version is now a little bit awkaward to work
-    # with e.g., docker-engine_17.05.0~ce-0~ubuntu-trusty_amd64.deb.
-    PACKAGES+=( $(printf 'docker-engine=%s~ce-0~ubuntu-%s' "$DOCKER_VERSION" "$UBUNTU_RELEASE") )
+    # with e.g., docker-ce_17.12.0~ce-0~ubuntu_amd64.deb, which is why
+    # we rely on wildcard match for a given version of Docker.
+    PACKAGES+=( $(printf 'docker-ce=%s~ce*' "$DOCKER_VERSION") )
+
 else
-    PACKAGES+=( 'docker-engine' )
+    PACKAGES+=( 'docker-ce' )
 fi
 
 for package in "${PACKAGES[@]}"; do
