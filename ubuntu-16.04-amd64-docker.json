@@ -187,6 +187,7 @@
       "ssh_wait_timeout": "30000s",
       "ssh_handshake_attempts": 30,
       "tools_upload_flavor": "linux",
+      "vmx_remove_ethernet_interfaces": true,
       "vmx_data": {
         "numvcpus": "1",
         "cpuid.coresPerSocket": "1",
