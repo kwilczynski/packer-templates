@@ -275,8 +275,8 @@ fi
 # boxes.
 if [[ -z $AMAZON_EC2 ]]; then
     # Render template overriding default list.
-    eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" \
-        > /etc/apt/sources.list
+    eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" | \
+        tee /etc/apt/sources.list >/dev/null
 
     chown root: /etc/apt/sources.list
     chmod 644 /etc/apt/sources.list
