@@ -490,6 +490,11 @@ mounts:
   - [ ephemeral, null ]
 EOF
 
+# Ubuntu specific cloud-init overrides.
+    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+apt_update: false
+EOF
+
     dpkg-reconfigure cloud-init
 fi
 
