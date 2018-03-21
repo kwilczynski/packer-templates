@@ -651,6 +651,7 @@ vm.vfs_cache_pressure = 50
 vm.dirty_ratio = 80
 vm.dirty_background_ratio = 5
 vm.dirty_expire_centisecs = 12000
+vm.mmap_min_addr = 65536
 EOF
 
 cat <<EOF | sed -e '/^$/d' > /etc/sysctl.d/10-network.conf
