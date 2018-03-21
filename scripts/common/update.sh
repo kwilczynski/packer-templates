@@ -45,7 +45,7 @@ APT
 };
 EOF
 
-cat <<EOF > /etc/apt/apt.conf.d/99vendor-ubuntu
+cat <<'EOF' > /etc/apt/apt.conf.d/99vendor-ubuntu
 Acquire
 {
     Changelogs
