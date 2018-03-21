@@ -343,6 +343,9 @@ find /etc /var /usr -type f -name '*~' -print0 | \
 find /var/log /var/cache /var/lib/apt -type f -print0 | \
     xargs -0 rm -f
 
+find /etc/alternatives /etc/rc[0-9].d -xtype l -print0 | \
+    xargs -0 rm -f
+
 if [[ -n $AMAZON_EC2 ]]; then
     find /etc /root /home -type f -name 'authorized_keys' -print0 | \
         xargs -0 rm -f
