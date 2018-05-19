@@ -110,7 +110,7 @@ fi
 # Keep the "tty1" virtual terminal to allow access in a case
 # of the network connection being down and/or inaccessible.
 for file in /etc/init/tty{2,3,4,5,6}.conf; do
-    dpkg-divert --rename $file
+    dpkg-divert --rename "$file"
 done
 
 sed -i -e \

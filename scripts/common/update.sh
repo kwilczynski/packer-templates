@@ -304,7 +304,7 @@ if [[ -f /etc/update-manager/release-upgrades ]]; then
 fi
 
 # Update everything.
-apt-get --assume-yes update 1>/dev/null
+apt-get --assume-yes update >/dev/null
 
 export UCF_FORCE_CONFFNEW=1
 ucf --purge /boot/grub/menu.lst
@@ -399,6 +399,7 @@ chown root: /etc/resolvconf/resolv.conf.d/head
 chmod 644 /etc/resolvconf/resolv.conf.d/head
 
 NAME_SERVERS=(
+    '1.1.1.1' # CloudFlare
     '8.8.8.8' # Google
     '4.2.2.2' # Level3
 )
@@ -492,6 +493,7 @@ EOF
 
 # Ubuntu specific cloud-init overrides.
     cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+apt_preserve_sources_list: true
 apt_update: false
 EOF
 
@@ -770,7 +772,7 @@ done
 # is it going to be. Also, probably not an most ideal thing to do
 # on EC2, since the storage type may vay significantly.
 if [[ -z $AMAZON_EC2 ]]; then
-    for block in $(ls -1 /sys/block | grep -E '(sd|xvd|dm).*' 2>/dev/null | sort); do
+    for block in $(ls -1 /sys/block | grep -E '(sd|vd|dm).*' 2>/dev/null | sort); do
         NR_REQUESTS="block/${block}/queue/nr_requests = 256"
         SCHEDULER="block/${block}/queue/scheduler = noop"
         if [[ $block =~ ^dm.*$ ]]; then

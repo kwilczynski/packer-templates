@@ -37,6 +37,15 @@ EOF
     ZFS_PACKAGE='ubuntu-zfs'
 fi
 
-apt-get --assume-yes install $ZFS_PACKAGE
+apt-get --assume-yes install \
+    "$ZFS_PACKAGE"
 
+cat <<'EOF' > /etc/sysfs.d/zfs.conf
+module/zfs/parameters/zfs_vdev_scheduler = noop
+module/zfs/parameters/zfs_read_chunk_size = 1310720
+module/zfs/parameters/zfs_prefetch_disable = 1
+EOF
+
+chown root: /etc/sysfs.d/zfs.conf
+chmod 644 /etc/sysfs.d/zfs.conf
 rm -f "${ZFS_FILES}/zfs-native.list"
