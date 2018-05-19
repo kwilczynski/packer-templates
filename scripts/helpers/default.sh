@@ -25,6 +25,21 @@ detect_platform() {
     esac
 }
 
+detect_os() {
+    local os
+
+    os="$(uname | tr '[:upper:]' '[:lower:]')"
+
+    case "$os" in
+        linux|linux-gnu)
+            echo 'linux'
+        ;;
+        *)
+            echo "$os"
+        ;;
+    esac
+}
+
 detect_grub2() {
     local status=0
     set +e
