@@ -157,6 +157,16 @@ APT
 };
 EOF
 
+cat <<'EOF' > /etc/apt/apt.conf.d/99apt-periodic
+APT
+{
+    Periodic
+    {
+        Enable "0";
+    };
+};
+EOF
+
 cat <<'EOF' > /etc/apt/apt.conf.d/99dpkg-progress
 DPkg
 {
