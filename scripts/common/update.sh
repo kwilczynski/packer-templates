@@ -428,7 +428,7 @@ cat <<EOF | sed -e '/^$/d' > /etc/resolvconf/resolv.conf.d/tail
 $(for server in "${NAME_SERVERS[@]}"; do
     echo "nameserver $server"
 done)
-options timeout:2 attempts:1 rotate single-request-reopen
+options timeout:2 attempts:1 rotate single-request-reopen edns0
 EOF
 
 chown root: /etc/resolvconf/resolv.conf.d/tail
