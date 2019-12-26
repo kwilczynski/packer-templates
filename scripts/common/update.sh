@@ -542,6 +542,7 @@ chmod 755 /srv
 if [[ -n $AMAZON_EC2 ]]; then
     # Disable Xen framebuffer driver causing 30 seconds boot delay.
 cat <<'EOF' > /etc/modprobe.d/blacklist-xen.conf
+install xen_fbfront /bin/true
 blacklist xen_fbfront
 EOF
 fi
@@ -570,26 +571,115 @@ install parport_pc /bin/true
 blacklist parport_pc
 EOF
 
-cat <<'EOF' > /etc/modprobe.d/blacklist-conntrack.conf
-blacklist nf_conntrack_amanda
-blacklist nf_conntrack_broadcast
-blacklist nf_conntrack_ftp
-blacklist nf_conntrack_h323
-blacklist nf_conntrack_irc
-blacklist nf_conntrack_netbios_ns
-blacklist nf_conntrack_netlink
-blacklist nf_conntrack_pptp
-blacklist nf_conntrack_proto_dccp
-blacklist nf_conntrack_proto_gre
-blacklist nf_conntrack_proto_sctp
-blacklist nf_conntrack_proto_udplite
-blacklist nf_conntrack_sane
-blacklist nf_conntrack_sip
-blacklist nf_conntrack_snmp
-blacklist nf_conntrack_tftp
+cat <<'EOF' > /etc/modprobe.d/blacklist-framebuffer.conf
+install arkfb /bin/true
+blacklist arkfb
+install aty128fb /bin/true
+blacklist aty128fb
+install atyfb /bin/true
+blacklist atyfb
+install bochs-drm /bin/true
+blacklist bochs-drm
+install cirrusfb /bin/true
+blacklist cirrusfb
+install cyber2000fb /bin/true
+blacklist cyber2000fb
+install cyblafb /bin/true
+blacklist cyblafb
+install gx1fb /bin/true
+blacklist gx1fb
+install hgafb /bin/true
+blacklist hgafb
+install i810fb /bin/true
+blacklist i810fb
+install intelfb /bin/true
+blacklist intelfb
+install kyrofb /bin/true
+blacklist kyrofb
+install lxfb /bin/true
+blacklist lxfb
+install matroxfb_base /bin/true
+blacklist matroxfb_base
+install mb862xxfb /bin/true
+blacklist mb862xxfb
+install neofb /bin/true
+blacklist neofb
+install nvidiafb /bin/true
+blacklist nvidiafb
+install pm2fb /bin/true
+blacklist pm2fb
+install pm3fb /bin/true
+blacklist pm3fb
+install radeonfb /bin/true
+blacklist radeonfb
+install rivafb /bin/true
+blacklist rivafb
+install s1d13xxxfb /bin/true
+blacklist s1d13xxxfb
+install s3fb /bin/true
+blacklist s3fb
+install savagefb /bin/true
+blacklist savagefb
+install sisfb /bin/true
+blacklist sisfb
+install sstfb /bin/true
+blacklist sstfb
+install tdfxfb /bin/true
+blacklist tdfxfb
+install tridentfb /bin/true
+blacklist tridentfb
+install udlfb /bin/true
+blacklist udlfb
+install vesafb /bin/true
+blacklist vesafb
+install vfb /bin/true
+blacklist vfb
+install viafb /bin/true
+blacklist viafb
+install vt8623fb /bin/true
+blacklist vt8623fb
 EOF
 
-cat <<'EOF' > /etc/modprobe.d/blacklist-security.conf
+cat <<'EOF' > /etc/modprobe.d/blacklist-conntrack.conf
+install nf_conntrack_amanda /bin/true
+blacklist nf_conntrack_amanda
+install nf_conntrack_broadcast /bin/true
+blacklist nf_conntrack_broadcast
+install nf_conntrack_ftp /bin/true
+blacklist nf_conntrack_ftp
+install nf_conntrack_tftp /bin/true
+blacklist nf_conntrack_tftp
+install nf_conntrack_h323 /bin/true
+blacklist nf_conntrack_h323
+install nf_conntrack_irc /bin/true
+blacklist nf_conntrack_irc
+install nf_conntrack_netbios_ns /bin/true
+blacklist nf_conntrack_netbios_ns
+install nf_conntrack_netlink /bin/true
+blacklist nf_conntrack_netlink
+install nf_conntrack_pptp /bin/true
+blacklist nf_conntrack_pptp
+install nf_conntrack_proto_dccp /bin/true
+blacklist nf_conntrack_proto_dccp
+install nf_conntrack_proto_gre /bin/true
+blacklist nf_conntrack_proto_gre
+install nf_conntrack_proto_sctp /bin/true
+blacklist nf_conntrack_proto_sctp
+install nf_conntrack_proto_udplite /bin/true
+blacklist nf_conntrack_proto_udplite
+install nf_conntrack_sane /bin/true
+blacklist nf_conntrack_sane
+install nf_conntrack_sip /bin/true
+blacklist nf_conntrack_sip
+install nf_conntrack_snmp /bin/true
+blacklist nf_conntrack_snmp
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/disable-conntrack-helper.conf
+options nf_conntrack nf_conntrack_helper=0
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/blacklist-filesystems.conf
 install cramfs /bin/true
 blacklist cramfs
 install freevxfs /bin/true
@@ -606,21 +696,98 @@ install udf /bin/true
 blacklist udf
 install vfat /bin/true
 blacklist vfat
-install dccp /bin/false
+install dccp /bin/true
 blacklist dccp
-install sctp /bin/false
+install sctp /bin/true
 blacklist sctp
-install rds /bin/false
+install rds /bin/true
 blacklist rds
-install tipc /bin/false
+install tipc /bin/true
 blacklist tipc
+EOF
+
+# Disabled for now, as preventing the llc module from being loaded would
+# break the bridge module which depends on some symbols from the llc
+# module.  Broken bridge module would prevent things such as Docker from
+# working correcly, etc.
+#   install llc /bin/true
+#   blacklist llc
+cat <<EOF | sed -e '/^$/d' > /etc/modprobe.d/blacklist-uncommon-protocols.conf
+install dccp /bin/true
+blacklist dccp
+install sctp /bin/true
+blacklist sctp
+alias net-pf-21 off
+install rds /bin/true
+blacklist rds
+install tipc /bin/true
+blacklist tipc
+install n-hdlc /bin/true
+blacklist n-hdlc
+alias net-pf-3 off
+install ax25 /bin/true
+blacklist ax25
+alias net-pf-6 off
+install netrom /bin/true
+blacklist netrom
+alias net-pf-9 off
+install x25 /bin/true
+blacklist x25
+alias net-pf-11 off
+install rose /bin/true
+blacklist rose
+alias net-pf-12 off
+install decnet /bin/true
+blacklist decnet
+alias net-pf-19 off
+install econet /bin/true
+blacklist econet
+alias net-pf-36 off
+install af_802154 /bin/true
+blacklist af_802154
+alias net-pf-4 off
+install ipx /bin/true
+blacklist ipx
+alias net-pf-5 off
+install appletalk /bin/true
+blacklist appletalk
+install psnap /bin/true
+blacklist psnap
+install p8022 /bin/true
+blacklist p8022
+install p8023 /bin/true
+blacklist p8023
 EOF
 
 cat <<'EOF' > /etc/modprobe.d/blacklist-bluetooth.conf
 alias net-pf-31 off
 alias bluetooth off
-install bluetooth /bin/false
+install bluetooth /bin/true
 blacklist bluetooth
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/blacklist-usb.conf
+install usb-storage /bin/true
+blacklist usb-storage
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/blacklist-thunderbolt.conf
+install thunderbolt /bin/true
+blacklist thunderbolt
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/blacklist-firewire.conf
+install firewire-core /bin/true
+blacklist firewire-core
+install eth1394 /bin/true
+blacklist eth1394
+EOF
+
+cat <<'EOF' > /etc/modprobe.d/blacklist-pcspeaker.conf
+install snd_pcsp /bin/true
+blacklist snd_pcsp
+install pcspkr /bin/true
+blacklist pcspkr
 EOF
 
 chown root: /etc/modprobe.d/*
