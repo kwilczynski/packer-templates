@@ -154,13 +154,14 @@ EOS
 fi)
   "ipv6": false,
   "dns": [
+    "1.1.1.1",
     "8.8.8.8",
     "4.2.2.2"
   ],
   "icc": false,
   "live-restore": true,
-  "disable-legacy-registry": true,
-  "userland-proxy": false
+  "userland-proxy": false,
+  "experimental": true
 }
 EOF
 
