@@ -10,8 +10,10 @@ readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 SSH_SETTINGS=(
     'UseDNS no'
+    'Compression no'
     'PermitRootLogin no'
     'GSSAPIAuthentication no'
+    'UsePrivilegeSeparation sandbox'
     'ServerKeyBits 2048'
 )
 
@@ -54,7 +56,8 @@ if [[ -n $AMAZON_EC2 ]]; then
         'UseLogin no'
         'TCPKeepAlive no'
         'X11Forwarding no'
-        'UsePrivilegeSeparation sandbox'
+        'AllowTcpForwarding no'
+        'AllowAgentForwarding no'
         'SyslogFacility AUTH'
         'LogLevel VERBOSE'
     )
