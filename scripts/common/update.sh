@@ -849,11 +849,12 @@ net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.tcp_slow_start_after_idle = 0
 net.ipv4.ip_local_port_range = 1024 65535
 $(if [[ -n $AMAZON_EC2 ]]; then
-echo 'net.ipv4.neigh.default.gc_thresh1 = 0'
+    echo 'net.ipv4.neigh.default.gc_thresh1 = 0'
 fi)
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-network-security.conf
+net.ipv4.tcp_sack = 0
 net.ipv4.tcp_rfc1337 = 1
 net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_syn_retries = 3
@@ -873,26 +874,36 @@ net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
 net.ipv4.conf.all.accept_source_route = 0
 net.ipv4.conf.default.accept_source_route = 0
-net.ipv4.conf.all.secure_redirects = 1
-net.ipv4.conf.default.secure_redirects = 1
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-magic-sysrq.conf
 kernel.sysrq = 0
 EOF
 
-cat <<'EOF' > /etc/sysctl.d/10-kernel-security.conf
+cat <<EOF | sed -e '/^$/d' > /etc/sysctl.d/10-kernel-security.conf
+vm.mmap_rnd_bits = 32
+vm.mmap_rnd_compat_bits = 16
 fs.suid_dumpable = 0
-net.core.bpf_jit_enable = 0
+$(if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    echo 'net.core.bpf_jit_enable = 0'
+else
+    cat <<'EOS'
+net.core.bpf_jit_harden = 2
+kernel.unprivileged_bpf_disabled = 1
+EOS
+fi)
 kernel.maps_protect = 1
 kernel.core_uses_pid = 1
-kernel.kptr_restrict = 1
+kernel.kptr_restrict = 2
 kernel.dmesg_restrict = 1
 kernel.randomize_va_space = 2
 kernel.perf_event_paranoid = 2
 kernel.yama.ptrace_scope = 1
 kernel.kexec_load_disabled = 1
 kernel.ftrace_enabled = 0
+kernel.unprivileged_userns_clone = 0
 EOF
 
 cat <<'EOF' > /etc/sysctl.d/10-link-restrictions.conf
