@@ -77,6 +77,7 @@ export LC_ALL=C LANGUAGE=C LANG=C
 
 export DEBIAN_FRONTEND='noninteractive'
 export DEBCONF_NONINTERACTIVE_SEEN='true'
+export APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE='true'
 
 trap clean_apt_policy EXIT
 
