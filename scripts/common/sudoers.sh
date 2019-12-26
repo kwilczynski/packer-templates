@@ -35,6 +35,9 @@ fi
 chown root: /etc/sudoers
 chmod 440 /etc/sudoers
 
+chown root: /etc/sudoers.d
+chmod 750 /etc/sudoers.d
+
 for user in root ubuntu; do
     if getent passwd "$user" &>/dev/null; then
         echo "${user}:$(date | md5sum)" | chpasswd
