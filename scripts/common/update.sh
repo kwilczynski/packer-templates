@@ -354,6 +354,11 @@ else
     apt-get --assume-yes dist-upgrade
 fi
 
+# Remove current Apt preferences, especially the Ubuntu ESM
+# packages pin coming from the ubuntu-advantage-tools package
+# that is almost always broken.
+rm -f /etc/apt/preferences.d/*
+
 cat <<'EOF' > /etc/timezone
 Etc/UTC
 EOF
