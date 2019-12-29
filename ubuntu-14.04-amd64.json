@@ -76,10 +76,10 @@
       "guest_additions_path": "VBoxGuestAdditions_{{ .Version }}.iso",
       "guest_os_type": "Ubuntu_64",
       "http_directory": "http",
-      "iso_checksum": "dde07d37647a1d2d9247e33f14e91acb10445a97578384896b4e1d985f754cc1",
+      "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04.5/ubuntu-14.04.5-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/14.04.6/ubuntu-14.04.6-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -158,10 +158,10 @@
       "skip_compaction": true,
       "guest_os_type": "ubuntu-64",
       "http_directory": "http",
-      "iso_checksum": "dde07d37647a1d2d9247e33f14e91acb10445a97578384896b4e1d985f754cc1",
+      "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04.5/ubuntu-14.04.5-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/14.04.6/ubuntu-14.04.6-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
