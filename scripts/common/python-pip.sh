@@ -62,7 +62,14 @@ hash -r
 apt-get --assume-yes purge python-setuptools
 
 pip install --upgrade setuptools
+
+if [[ $UBUNTU_VERSION == '16.04' ]]; then
 pip install --upgrade virtualenv
+else
+    # The virtualenv version 20.0.0 or newer appears to be broken,
+    # as the pyconfig.h file won't be made available.
+    pip install virtualenv==16.7.10
+fi
 
 # Resolve the "InsecurePlatformWarning" warning.
 pip install --upgrade ndg-httpsclient

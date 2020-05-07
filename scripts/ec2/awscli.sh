@@ -6,6 +6,8 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
 source /var/tmp/helpers/default.sh
 
+readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
+
 # Set default desirable region.
 if [[ -z $AWS_DEFAULT_REGION ]]; then
     AWS_DEFAULT_REGION='us-east-1'
@@ -57,7 +59,7 @@ rm -f /usr/local/bin/aws.cmd \
       /usr/local/bin/aws_zsh_completer.sh
 
 # Remove not really needed documentation.
-rm -rf /usr/local/lib/python*/dist-packages/awscli/examples || true
+rm -Rf /usr/local/lib/python*/dist-packages/awscli/examples || true
 
 for file in /usr/local/bin/aws*; do
     ln -sf "$file" "/usr/bin/${file##*/}"
@@ -79,7 +81,7 @@ for user in $(echo "root ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
 cwlogs = cwlogs
 
 [default]
-$(if [[ $PACKER_BUILDER_TYPE =~ ^amazon-.+$ ]]; then
+$(if [[ -n $AMAZON_EC2 ]]; then
     printf "%s = %s" "region" $AWS_DEFAULT_REGION
   fi)
 output = json

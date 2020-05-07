@@ -59,6 +59,24 @@ detect_amazon_ec2() {
     return $status
 }
 
+detect_vmware() {
+    local status=0
+    set +e
+    [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]
+    status=$?
+    set -e
+    return $status
+}
+
+detect_proxmox() {
+    local status=0
+    set +e
+    [[ $PACKER_BUILDER_TYPE =~ ^proxmox$ ]]
+    status=$?
+    set -e
+    return $status
+}
+
 detect_ubuntu_release() {
     lsb_release -sc
 }

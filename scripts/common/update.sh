@@ -7,9 +7,13 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly COMMON_FILES='/var/tmp/common'
+
 readonly UBUNTU_RELEASE=$(detect_ubuntu_release)
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
+readonly VMWARE=$(detect_vmware && echo 'true')
+readonly PROXMOX=$(detect_proxmox && echo 'true')
 
 # Remove current Apt and DPKG overrides ...
 rm -f /etc/apt/apt.conf.d/* \
@@ -239,7 +243,7 @@ dpkg-divert --divert /etc/apt/apt.conf.d/99vendor-ubuntu \
 
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get --assume-yes clean all
-    rm -rf /var/lib/apt/lists
+    rm -Rf /var/lib/apt/lists
 fi
 
 # Ubuntu (up to) 12.04 require a third-party repository
@@ -285,7 +289,7 @@ fi
 # boxes.
 if [[ -z $AMAZON_EC2 ]]; then
     # Render template overriding default list.
-    eval "echo \"$(cat /var/tmp/vagrant/sources.list.template)\"" | \
+    eval "echo \"$(cat /var/tmp/common/sources.list.template)\"" | \
         tee /etc/apt/sources.list >/dev/null
 
     chown root: /etc/apt/sources.list
@@ -322,6 +326,14 @@ ucf --purge /boot/grub/menu.lst
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
     apt-get --assume-yes install libreadline-dev dpkg
 fi
+
+sed -i -e \
+    's/.*BUSYBOX=.*/BUSYBOX=y/' \
+    /etc/initramfs-tools/initramfs.conf
+
+sed -i -e \
+    's/.*COMPRESS=.*/COMPRESS=xz/' \
+    /etc/initramfs-tools/initramfs.conf
 
 # Only install back-ported Kernel on 12.04 and 14.04 ...
 if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
@@ -423,7 +435,7 @@ if [[ -n $AMAZON_EC2 ]]; then
     NAME_SERVERS=()
 fi
 
-if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
+if [[ -n $VMWARE ]]; then
     NAME_SERVERS+=( $(route -n | \
         grep -E 'UG[ \t]' | \
             awk '{ print $2 }') )
@@ -464,12 +476,21 @@ chmod 644 /etc/nsswitch.conf
 
 update-ca-certificates -v
 
-if [[ -n $AMAZON_EC2 ]]; then
+if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
+    # Install the cloud-init package if missing.
+    if ! dpkg -s cloud-init &>/dev/null; then
+        apt-get --assume-yes install cloud-init
+    fi
+
+    DATA_SOURCES=( 'NoCloud' 'None' )
+    if [[ -n $AMAZON_EC2 ]]; then
+        DATA_SOURCES=( 'NoCloud' 'Ec2' 'None' )
+    fi
+
     # The cloud-init package available on Ubuntu 12.04 is too old,
     # and would fail with "None" being a data source.
-    DATA_SOURCES=( NoCloud Ec2 None )
     if [[ $UBUNTU_VERSION == '12.04' ]]; then
-        DATA_SOURCES=( NoCloud Ec2 )
+        DATA_SOURCES=( ${DATA_SOURCES[@]/'None'} )
     fi
 
     cat <<EOF > /etc/cloud/cloud.cfg.d/90_overrides.cfg
@@ -505,6 +526,18 @@ cloud_final_modules:
 mounts:
   - [ ephemeral, null ]
 EOF
+
+if [[ -n $PROXMOX ]]; then
+    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+system_info:
+  distro: 'ubuntu'
+  default_user:
+    name: 'ubuntu'
+    plain_text_passwd: 'ubuntu'
+    lock_passwd: false
+    sudo: false
+EOF
+fi
 
 # Ubuntu specific cloud-init overrides.
     cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null

@@ -7,6 +7,7 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
+readonly PROXMOX=$(detect_proxmox && echo 'true')
 
 SSH_SETTINGS=(
     'UseDNS no'
@@ -51,7 +52,7 @@ MACS=(
 
 SSH_SETTINGS+=( "MACs $(join $',' "${MACS[@]}")" )
 
-if [[ -n $AMAZON_EC2 ]]; then
+if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
     SSH_SETTINGS+=(
         'UseLogin no'
         'TCPKeepAlive no'
@@ -72,7 +73,7 @@ yes | ssh-keygen -t rsa -b 4096 -N '' \
 
 # Generate new moduli file to remove weak Diffie-Hellman Parameter
 # set and to prevent the Logjam attack, see: https://weakdh.org/.
-if wget --no-proxy --tries 1 --connect-timeout=2 https://2ton.com.au/ &>/dev/null; then
+if wget -O /dev/null --no-proxy --tries 1 --connect-timeout=2 https://2ton.com.au/ &>/dev/null; then
     # Remove old file.
     rm -f /etc/ssh/moduli
 

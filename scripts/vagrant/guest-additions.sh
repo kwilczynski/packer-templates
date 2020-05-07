@@ -35,7 +35,7 @@ case "$PACKER_BUILDER_TYPE" in
             "/opt/VBoxGuestAdditions-${VBOX_VERSION}/lib/VBoxGuestAdditions" \
             /usr/lib/VBoxGuestAdditions
 
-        rm -rf /home/${SYSTEM_USER}/.{vbox,virtualbox}_version \
+        rm -Rf /home/${SYSTEM_USER}/.{vbox,virtualbox}_version \
                /tmp/virtualbox
 
         # Disable the X11 support and automatic driver compilation.
@@ -121,7 +121,7 @@ case "$PACKER_BUILDER_TYPE" in
             's/answer AUTO_KMODS_ENABLED_ANSWER\s.*/answer AUTO_KMODS_ENABLED_ANSWER yes/g' \
             /etc/vmware-tools/locations
 
-        rm -rf /tmp/vmware \
+        rm -Rf /tmp/vmware \
                /tmp/vmware-archive \
                "${VMWARE_FILES:?}/${PATCH_FILE}"
     ;;

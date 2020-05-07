@@ -31,4 +31,4 @@ else
     $SHELL "${CHEF_FILES}/install.sh" "$OMNIBUS_OPTIONS"
 fi
 
-rm -rf "$CHEF_FILES"
+rm -Rf "$CHEF_FILES"

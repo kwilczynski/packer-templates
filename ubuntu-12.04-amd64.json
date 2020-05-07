@@ -34,6 +34,21 @@
     "sriov_support": "false",
     "encrypt_boot": "false",
     "source_ami": "{{env `EC2_SOURCE_AMI`}}",
+    "proxmox_username": "{{env `PROXMOX_USERNAME`}}",
+    "proxmox_password": "{{env `PROXMOX_PASSWORD`}}",
+    "proxmox_realm": "{{env `PROXMOX_REALM`}}",
+    "proxmox_host": "{{env `PROXMOX_HOST`}}",
+    "proxmox_node": "{{env `PROXMOX_NODE`}}",
+    "virtual_machine_id": "900",
+    "iso_file_name": "",
+    "cpu_cores": "1",
+    "memory": "512",
+    "disk_size": "40G",
+    "disk_format": "raw",
+    "storage_pool": "",
+    "storage_pool_type": "",
+    "network_adapter_model": "virtio",
+    "cloud_init": "true",
     "headless": "true",
     "debug": "{{env `PACKER_DEBUG`}}"
   },
@@ -66,7 +81,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
+        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-12.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -81,10 +96,11 @@
         "http://{{user `releases_mirror`}}/12.04/ubuntu-12.04.5-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
+      "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
       "ssh_username": "vagrant",
       "ssh_password": "vagrant",
       "ssh_port": 22,
-      "ssh_wait_timeout": "30000s",
+      "ssh_timeout": "3600s",
       "ssh_handshake_attempts": 30,
       "virtualbox_version_file": ".virtualbox_version",
       "vboxmanage": [
@@ -147,7 +163,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ubuntu-12.04/preseed.cfg<wait>",
+        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-12.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -166,7 +182,7 @@
       "ssh_username": "vagrant",
       "ssh_password": "vagrant",
       "ssh_port": 22,
-      "ssh_wait_timeout": "30000s",
+      "ssh_timeout": "3600s",
       "ssh_handshake_attempts": 30,
       "tools_upload_flavor": "linux",
       "vmx_remove_ethernet_interfaces": true,
@@ -175,6 +191,83 @@
         "cpuid.coresPerSocket": "1",
         "memsize": "768"
       }
+    },
+    {
+      "type": "proxmox",
+      "vm_name": "packer-{{user `name`}}",
+      "vm_id": "{{user `virtual_machine_id`}}",
+      "boot_command": [
+        "<enter><wait><f6><esc>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "/install/vmlinuz<wait>",
+        " auto<wait>",
+        " console-setup/ask_detect=false<wait>",
+        " console-setup/layoutcode=us<wait>",
+        " console-setup/modelcode=pc105<wait>",
+        " debconf/frontend=noninteractive<wait>",
+        " debian-installer=en_US<wait>",
+        " fb=false<wait>",
+        " initrd=/install/initrd.gz<wait>",
+        " kbd-chooser/method=us<wait>",
+        " keyboard-configuration/layout=USA<wait>",
+        " keyboard-configuration/variant=USA<wait>",
+        " locale=en_US<wait>",
+        " domain=localdomain<wait>",
+        " hostname=localhost<wait>",
+        " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
+        " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
+        " noapic<wait>",
+        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-12.04/preseed.cfg<wait>",
+        " -- <wait>",
+        "<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "http_directory": "http",
+      "proxmox_url": "https://{{user `proxmox_host`}}:8006/api2/json",
+      "node": "{{user `proxmox_node`}}",
+      "insecure_skip_tls_verify": true,
+      "username": "{{user `proxmox_username`}}@{{user `proxmox_realm`}}",
+      "password": "{{user `proxmox_password`}}",
+      "iso_file": "local:iso/{{user `iso_file_name`}}",
+      "unmount_iso": true,
+      "ssh_username": "ubuntu",
+      "ssh_password": "ubuntu",
+      "ssh_port": 22,
+      "ssh_timeout": "3600s",
+      "ssh_handshake_attempts": 30,
+      "qemu_agent": true,
+      "cloud_init": "{{user `cloud_init`}}",
+      "os": "l26",
+      "cpu_type": "host",
+      "sockets": 1,
+      "cores": "{{user `cpu_cores`}}",
+      "memory": "{{user `memory`}}",
+      "scsi_controller": "virtio-scsi-pci",
+      "disks": [
+        {
+          "type": "scsi",
+          "disk_size": "{{user `disk_size`}}",
+          "format": "{{user `disk_format`}}",
+          "storage_pool": "{{user `storage_pool`}}",
+          "storage_pool_type": "{{user `storage_pool_type`}}"
+        }
+      ],
+      "network_adapters": [
+        {
+          "model": "{{user `network_adapter_model`}}",
+          "bridge": "vmbr0"
+        }
+      ],
+      "template_name": "{{user `name`}}",
+      "template_description": "{{user `description`}}"
     },
     {
       "type": "amazon-ebs",
@@ -189,7 +282,6 @@
       "security_group_id": "{{user `security_group_id`}}",
       "instance_type": "{{user `instance_type`}}",
       "spot_price": "{{user `spot_price`}}",
-      "spot_price_auto_product": "Linux/UNIX (Amazon VPC)",
       "ena_support": "{{user `ena_support`}}",
       "sriov_support": "{{user `sriov_support`}}",
       "source_ami": "{{user `source_ami`}}",
@@ -208,6 +300,9 @@
       "associate_public_ip_address": "true",
       "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
       "ssh_username": "ubuntu",
+      "ssh_port": 22,
+      "ssh_timeout": "3600s",
+      "ssh_handshake_attempts": 30,
       "encrypt_boot": "{{user `encrypt_boot`}}",
       "launch_block_device_mappings": [
         {
@@ -267,6 +362,9 @@
       "bundle_upload_command": "sudo -H -S -E -n bash /var/tmp/ec2/ec2-upload-bundle.sh -b {{.BucketName}} -m {{.ManifestPath}} -a {{.AccessKey}} -s {{.SecretKey}} -d {{.BundleDirectory}} --region {{.Region}}",
       "temporary_key_pair_name": "packer_{{user `name`}}-{{timestamp}}",
       "ssh_username": "ubuntu",
+      "ssh_port": 22,
+      "ssh_timeout": "3600s",
+      "ssh_handshake_attempts": 30,
       "encrypt_boot": "{{user `encrypt_boot`}}",
       "run_tags": {
         "Name": "packer_{{user `name`}}-{{timestamp}}"
@@ -282,6 +380,16 @@
     }
   ],
   "provisioners": [
+    {
+      "pause_before": "30s",
+      "type": "shell",
+      "only": [
+        "proxmox"
+      ],
+      "inline": [
+        "true"
+      ]
+    },
     {
       "type": "file",
       "source": "scripts/helpers",
@@ -372,6 +480,43 @@
     {
       "type": "shell",
       "only": [
+        "proxmox"
+      ],
+      "environment_vars": [
+        "ARCHIVE_MIRROR=http://{{user `archive_mirror`}}/ubuntu",
+        "BUILD_NUMBER={{user `build_number`}}",
+        "PACKER_BUILD_NAME={{user `name`}}",
+        "PACKER_BUILD_TIMESTAMP={{timestamp}}",
+        "PACKER_BUILD_VERSION={{user `version`}}",
+        "RUBY_VERSION={{user `ruby_version`}}",
+        "ITAMAE_VERSION={{user `itamae_version`}}",
+        "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
+      ],
+      "execute_command": "echo 'ubuntu' | {{ .Vars }} sudo -H -S -E bash {{if eq (user `debug`) `true` }}-xv{{end}} '{{ .Path }}'",
+      "expect_disconnect": "true",
+      "scripts": [
+        "scripts/proxmox/hostname.sh",
+        "scripts/common/update.sh",
+        "scripts/common/packages.sh",
+        "scripts/common/sshd.sh",
+        "scripts/proxmox/motd.sh",
+        "scripts/common/motd.sh",
+        "scripts/common/reboot.sh",
+        "scripts/proxmox/ubuntu.sh",
+        "scripts/common/disable-ipv6.sh",
+        "scripts/common/networking.sh",
+        "scripts/common/python-pip.sh",
+        "{{if or (eq (user `ruby`) `true`) (eq (user `itamae`) `true`) }}scripts/common/ruby.sh{{else}}scripts/common/dummy.sh{{end}}",
+        "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
+        "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
+        "scripts/common/sudoers.sh",
+        "scripts/proxmox/grub.sh",
+        "scripts/common/clean-up.sh"
+      ]
+    },
+    {
+      "type": "shell",
+      "only": [
         "amazon-ebs",
         "amazon-instance"
       ],
@@ -451,7 +596,8 @@
       "type": "vagrant",
       "except": [
         "amazon-ebs",
-        "amazon-instance"
+        "amazon-instance",
+        "proxmox"
       ],
       "vagrantfile_template": "templates/Vagrantfile.template",
       "output": "images/vagrant-{{ .Provider }}/{{user `name`}}.box",

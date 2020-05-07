@@ -10,6 +10,7 @@ KERNEL_OPTIONS=(
     'quiet'
     'divider=10'
     'console=tty1'
+    'console=ttyS0,9600n8'
     'tsc=reliable'
     'elevator=noop'
     'net.ifnames=0'
@@ -19,7 +20,11 @@ KERNEL_OPTIONS=(
 )
 
 sed -i -e \
-    's/.*GRUB_TERMINAL=.*/GRUB_TERMINAL="console"/' \
+    's/.*GRUB_TERMINAL=.*/GRUB_TERMINAL="serial console"/' \
+    /etc/default/grub
+
+sed -i -e \
+    's/.*GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND="serial --speed=9600 --unit=0 --word=8 --parity=no --stop=1"/' \
     /etc/default/grub
 
 sed -i -e \

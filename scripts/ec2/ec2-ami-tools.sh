@@ -67,4 +67,4 @@ chmod 755 /var/tmp/ec2-ami-tools/bin/*
 find /var/tmp/ec2-ami-tools/{etc,lib} -type f -print0 | \
     xargs -0 chmod -f 644
 
-rm -rf /tmp/ec2-ami-tools-archive
+rm -Rf /tmp/ec2-ami-tools-archive

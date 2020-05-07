@@ -114,5 +114,5 @@ for directory in /etc/cfn /etc/cfn/hooks.d; do
     chmod 755 "$directory"
 done
 
-rm -rf "${EC2_FILES}/${AWS_CFN_BOOTSTRAP:?}" \
+rm -Rf "${EC2_FILES}/${AWS_CFN_BOOTSTRAP:?}" \
        /tmp/aws-cfn-bootstrap

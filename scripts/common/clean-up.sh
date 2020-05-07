@@ -7,8 +7,12 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly COMMON_FILES='/var/tmp/common'
+
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
+readonly VMWARE=$(detect_vmware && echo 'true')
+readonly PROXMOX=$(detect_proxmox && echo 'true')
 
 if [[ $UBUNTU_VERSION == '16.04' ]]; then
     systemctl daemon-reload
@@ -25,6 +29,13 @@ for service in syslog syslog-ng rsyslog systemd-journald; do
 done
 
 logrotate -f /etc/logrotate.conf || true
+
+# Remove the Ubuntu Extended Security Maintenance (ESM)
+# as it is a paid feature only available to Canonical
+# Advantage subscribers.
+apt-key adv --batch --yes --delete-keys 'esm@canonical.com' || true
+find /etc/apt/sources.list.d -type f -name 'ubuntu-esm-*' -print0 | \
+    xargs -0 rm -f
 
 # Remove everything (configuration files, etc.) left after
 # packages were uninstalled (often unused files are left on
@@ -53,10 +64,10 @@ PACKAGES_TO_PURGE=( $(cat "${COMMON_FILES}/packages-purge.list" 2>/dev/null) )
 
 # Keep these packages when building an Instance Store type image (needed by
 # the Amazon EC2 AMI Tools), and remove otherwise.
-if [[ -z $AMAZON_EC2 ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
+if [[ -z $AMAZON_EC2 || -z $PROXMOX || $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     # Remove Ruby ONLY when any sensible version was not installed, or
     # when the Itamae Ruby gem (and its dependencies) were not installed.
-    if [[ -z $RUBY_VERSION ]] || [[ -z $ITAMAE_VERSION ]] && \
+    if [[ -z $RUBY_VERSION || -z $ITAMAE_VERSION ]] && \
           ! ( apt-cache policy | grep -qF 'brightbox' )
     then
         PACKAGES_TO_PURGE+=(
@@ -73,8 +84,8 @@ if [[ -z $AMAZON_EC2 ]] || [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
     )
 fi
 
-if [[ -n $AMAZON_EC2 ]]; then
-  # Remove packages that are definitely not needed in EC2 ...
+if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
+  # Remove packages that are definitely not needed in EC2 or Proxmox ...
     PACKAGES_TO_PURGE+=(
         '^wireless-*'
         'crda'
@@ -82,6 +93,12 @@ if [[ -n $AMAZON_EC2 ]]; then
         'linux-firmware'
         'mdadm'
         'open-iscsi'
+    )
+fi
+
+if [[ -n $AMAZON_EC2 ]]; then
+  # Remove packages that are definitely not needed in EC2 ...
+    PACKAGES_TO_PURGE+=(
         'lvm2'
     )
 fi
@@ -172,13 +189,18 @@ rm -f /root/.bash_history \
       /root/.lesshst \
       /root/.gemrc
 
-rm -rf /root/.cache \
+rm -Rf /root/.cache \
        /root/.{gem,gems} \
        /root/.vim* \
        /root/.ssh \
        /root/*
 
-for user in vagrant ubuntu; do
+ USERS=('vagrant')
+ if [[ -z $PROXMOX ]]; then
+     USERS+=('ubuntu')
+ fi
+
+for user in "${USERS[@]}"; do
     if getent passwd "$user" &>/dev/null; then
         rm -f /home/${user:?}/.bash_history \
               /home/${user:?}/.rnd* \
@@ -188,46 +210,46 @@ for user in vagrant ubuntu; do
               /home/${user:?}/.lesshst \
               /home/${user:?}/.gemrc
 
-        rm -rf /home/${user:?}/.cache \
+        rm -Rf /home/${user:?}/.cache \
                /home/${user:?}/.{gem,gems} \
                /home/${user:?}/.vim* \
                /home/${user:?}/*
     fi
 done
 
-rm -rf /etc/lvm/cache/.cache
+rm -Rf /etc/lvm/cache/.cache
 
 # Clean if there are any Python software installed there.
 if ls /opt/*/share &>/dev/null; then
     find /opt/*/share -type d \( -name 'man' -o -name 'doc' \) -print0 | \
-        xargs -0 rm -rf
+        xargs -0 rm -Rf
 fi
 
 if [[ -z $AMAZON_EC2 ]]; then
     # VMWare uses DHCP behind the scene, thus we need to remove
     # the host name entry as it's not going to be valid any more
     # after the machine will be brought up again in the future.
-    if [[ $PACKER_BUILDER_TYPE =~ ^vmware.*$ ]]; then
+    if [[ -n $VMWARE || -n $PROXMOX ]]; then
         IP_ADDRESS=$(hostname -I | cut -d' ' -f 1)
         sed -i -e \
             "/^${IP_ADDRESS}/d; /^$/d" \
             /etc/hosts
     fi
 
-    rm -rf /tmp/* /var/tmp/* /usr/tmp/*
+    rm -Rf /tmp/* /var/tmp/* /usr/tmp/*
 else
     if [[ $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; then
         # Will be excluded during the volume bundling process
         # only when building Instance Store type image, thus
         # we clean-up manually.
-        rm -rf /tmp/* /var/tmp/* /usr/tmp/*
+        rm -Rf /tmp/* /var/tmp/* /usr/tmp/*
     fi
 fi
 
-rm -rf /usr/share/{doc,man}/* \
+rm -Rf /usr/share/{doc,man}/* \
        /usr/local/share/{doc,man}
 
-rm -rf /usr/share/groff/* \
+rm -Rf /usr/share/groff/* \
        /usr/share/info/* \
        /usr/share/lintian/* \
        /usr/share/linda/* \
@@ -248,7 +270,7 @@ sed -i -e \
     '/^#/!s/\s\+/\t/g' \
     /etc/fstab
 
-rm -rf /var/lib/ubuntu-release-upgrader \
+rm -Rf /var/lib/ubuntu-release-upgrader \
        /var/lib/update-notifier \
        /var/lib/update-manager \
        /var/lib/man-db \
@@ -256,18 +278,18 @@ rm -rf /var/lib/ubuntu-release-upgrader \
        /var/lib/ntp/ntp.drift \
        /var/lib/{lxd,lxcfs}
 
-rm -rf /lib/recovery-mode
+rm -Rf /lib/recovery-mode
 
-rm -rf /var/lib/cloud/data/scripts \
+rm -Rf /var/lib/cloud/data/scripts \
        /var/lib/cloud/scripts/per-instance \
        /var/lib/cloud/data/user-data* \
        /var/lib/cloud/instance \
        /var/lib/cloud/instances/*
 
-rm -rf /var/log/docker \
+rm -Rf /var/log/docker \
        /var/run/docker.sock
 
-rm -rf /var/log/unattended-upgrades
+rm -Rf /var/log/unattended-upgrades
 
 # Prevent storing of the MAC address as part of the network
 # interface details saved by systemd/udev, and disable support
@@ -290,11 +312,11 @@ if [[ $UBUNTU_VERSION == '16.04' ]]; then
     ln -sf /dev/null /etc/systemd/network/99-default.link
 fi
 
-rm -rf /dev/.udev \
+rm -Rf /dev/.udev \
        /var/lib/{dhcp,dhcp3}/* \
        /var/lib/dhclient/*
 
-if [[ -n $AMAZON_EC2 ]]; then
+if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
     # Get rid of this file, alas clout-init will probably
     # create it again automatically so that it can wreck
     # network configuration. These files, sadly cannot be
@@ -302,14 +324,18 @@ if [[ -n $AMAZON_EC2 ]]; then
     # would change permission of the device node to 0644,
     # which is disastrous, every time during the system
     # startup.
-    rm -f /etc/network/interfaces.d/50-cloud-init.cfg \
-          /etc/systemd/network/50-cloud-init-eth0.link \
-          /etc/udev/rules.d/70-persistent-net.rules
+    if [[ $UBUNTU_VERSION == '12.04' ]]; then
+        rm -f /etc/udev/rules.d/70-persistent-net.rules
+    else
+        rm -f /etc/network/interfaces.d/50-cloud-init.cfg \
+              /etc/systemd/network/50-cloud-init-eth0.link \
+              /etc/udev/rules.d/70-persistent-net.rules
 
-    pushd /etc/network/interfaces.d &>/dev/null
-    mknod .null c 1 3
-    ln -sf .null 50-cloud-init.cfg
-    popd &>/dev/null
+        pushd /etc/network/interfaces.d &>/dev/null
+        mknod .null c 1 3
+        ln -sf .null 50-cloud-init.cfg
+        popd &>/dev/null
+    fi
 
     pushd /etc/udev/rules.d &>/dev/null
     mknod .null c 1 3
@@ -328,14 +354,14 @@ for directory in /usr/share/locale /usr/share/locale-langpack; do
         fi
     done
 
-    rm -rf ${directory:?}/*
+    rm -Rf ${directory:?}/*
 
     if [[ -d "$directory" ]]; then
         mv /tmp/locale/* "${directory:?}/"
     fi
 done
 
-rm -rf /tmp/locale
+rm -Rf /tmp/locale
 
 find /etc /var /usr -type f -name '*~' -print0 | \
     xargs -0 rm -f
@@ -346,7 +372,7 @@ find /var/log /var/cache /var/lib/apt -type f -print0 | \
 find /etc/alternatives /etc/rc[0-9].d -xtype l -print0 | \
     xargs -0 rm -f
 
-if [[ -n $AMAZON_EC2 ]]; then
+if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
     find /etc /root /home -type f -name 'authorized_keys' -print0 | \
         xargs -0 rm -f
 else

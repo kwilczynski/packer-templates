@@ -4,6 +4,10 @@ set -e
 
 export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
+source /var/tmp/helpers/default.sh
+
+readonly PROXMOX=$(detect_proxmox && echo 'true')
+
 sed -i -e \
     's/^\(.*env_keep = \"\)/\1PATH /' \
     /etc/sudoers
@@ -38,7 +42,12 @@ chmod 440 /etc/sudoers
 chown root: /etc/sudoers.d
 chmod 750 /etc/sudoers.d
 
-for user in root ubuntu; do
+USERS=('root')
+if [[ -z $PROXMOX ]]; then
+    USERS+=('ubuntu')
+fi
+
+for user in "${USERS[@]}"; do
     if getent passwd "$user" &>/dev/null; then
         echo "${user}:$(date | md5sum)" | chpasswd
         passwd -l "$user"

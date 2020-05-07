@@ -13,9 +13,11 @@ readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 [[ -d $DOCKER_FILES ]] || mkdir -p "$DOCKER_FILES"
 
+# Old package repository has been shut down, see:
+#  https://www.docker.com/blog/changes-dockerproject-org-apt-yum-repositories/
 cat <<EOF > /etc/apt/sources.list.d/docker.list
 $(if [[ $UBUNTU_VERSION == '12.04' ]]; then
-echo "deb [arch=amd64] https://apt.dockerproject.org/repo ubuntu-${UBUNTU_RELEASE} main"
+echo "deb [arch=amd64] https://ftp.yandex.ru/mirrors/docker ubuntu-${UBUNTU_RELEASE} main"
 else
 echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable"
 fi)
@@ -24,10 +26,21 @@ EOF
 chown root: /etc/apt/sources.list.d/docker.list
 chmod 644 /etc/apt/sources.list.d/docker.list
 
-if [[ ! -f "${DOCKER_FILES}/docker.key" ]]; then
-    # Download key directly from Docker project.
-    wget -O "${DOCKER_FILES}/docker.key" \
-        "https://download.docker.com/linux/ubuntu/gpg"
+if [[ $UBUNTU_VERSION == '12.04' ]]; then
+    if [[ ! -f "${DOCKER_FILES}/12.04/docker.key" ]]; then
+        # Download key directly from Docker project.
+        wget -O "${DOCKER_FILES}/docker.key" \
+            "https://ftp.yandex.ru/mirrors/docker/gpg"
+    else
+        cp -f "${DOCKER_FILES}/12.04/docker.key" \
+              "${DOCKER_FILES}/docker.key"
+    fi
+else
+    if [[ ! -f "${DOCKER_FILES}/docker.key" ]]; then
+        # Download key directly from Docker project.
+        wget -O "${DOCKER_FILES}/docker.key" \
+            "https://download.docker.com/linux/ubuntu/gpg"
+    fi
 fi
 
 apt-key add "${DOCKER_FILES}/docker.key"
@@ -258,7 +271,7 @@ grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
 for directory in /srv/docker /var/lib/docker; do
     [[ -d $directory ]] || mkdir -p "$directory"
 
-    rm -rf ${directory:?}/*
+    rm -Rf ${directory:?}/*
 
     chown root: "$directory"
     chmod 755 "$directory"
