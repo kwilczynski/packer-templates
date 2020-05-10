@@ -7,6 +7,7 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly ZFS_FILES='/var/tmp/zfs'
+
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
 
 [[ -d $ZFS_FILES ]] || mkdir -p "$ZFS_FILES"

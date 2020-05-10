@@ -15,6 +15,8 @@ readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 readonly VMWARE=$(detect_vmware && echo 'true')
 readonly PROXMOX=$(detect_proxmox && echo 'true')
 
+[[ -d $COMMON_FILES ]] || mkdir -p "$COMMON_FILES"
+
 # Remove current Apt and DPKG overrides ...
 rm -f /etc/apt/apt.conf.d/* \
       /etc/dpkg/dpkg.cfg.d/*
@@ -346,21 +348,42 @@ if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     # Upgrade to latest available back-ported Kernel version.
     for package in '' 'image' 'headers'; do
         PACKAGE_NAME=$(echo \
-                "linux-${package}-generic-lts-${UBUNTU_BACKPORT}" | \
-                    sed -e 's/\-\+/\-/')
+            "linux-${package}-generic-lts-${UBUNTU_BACKPORT}" | \
+                sed -e 's/\-\+/\-/')
 
         apt-get --assume-yes install "$PACKAGE_NAME"
     done
 else
-    # Add necessary depenencies.
-    apt-get --assume-yes install "linux-headers-$(uname -r)"
+    PACKAGE_SUFFIX='generic'
+    if [[ -n $AMAZON_EC2 ]]; then
+        PACKAGE_SUFFIX='aws'
+    fi
+
+    OUTPUT=$(apt-cache search linux-image | awk '{ print $1 }' | \
+        grep -E "linux-image-[0-9]+(.*)-${PACKAGE_SUFFIX}")
+
+    # Pick most recent Linux kernel version available.
+    VERSION=$(echo "$OUTPUT" | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | \
+        sort -t'.' -k 1nr,1 -k 2nr,2 -k 3nr,3 | \
+            head -n 1)
+
+    PACKAGE_NAME=$(echo "$OUTPUT" | grep "$VERSION" | \
+        sort -t'-' -k 1,1 -k 2,2 -r | \
+            head -n 1)
+
+    apt-get --assume-yes install "$PACKAGE_NAME"
+
+    # Make sure to install Kernel headers.
+    apt-get --assume-yes install \
+        "$(echo $PACKAGE_NAME | sed -e 's/image/headers/')" \
+        "linux-headers-$(uname -r)"
 fi
 
 # Update everything ...
 apt-get --assume-yes upgrade
 
 # Update everything else ...
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     apt-get --assume-yes full-upgrade
 else
     apt-get --assume-yes dist-upgrade
@@ -419,39 +442,67 @@ update-locale \
     LC_ALL="en_US.UTF-8" \
     LANGUAGE="en_US.UTF-8:en_US:en"
 
-rm -f /etc/resolvconf/resolv.conf.d/head
-touch /etc/resolvconf/resolv.conf.d/head
+if [[ $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+    rm -f /etc/resolvconf/resolv.conf.d/head
+    touch /etc/resolvconf/resolv.conf.d/head
 
-chown root: /etc/resolvconf/resolv.conf.d/head
-chmod 644 /etc/resolvconf/resolv.conf.d/head
+    chown root: /etc/resolvconf/resolv.conf.d/head
+    chmod 644 /etc/resolvconf/resolv.conf.d/head
 
-NAME_SERVERS=(
-    '1.1.1.1' # CloudFlare
-    '8.8.8.8' # Google
-    '4.2.2.2' # Level3
-)
+    NAME_SERVERS=(
+        '1.1.1.1' # CloudFlare
+        '8.8.8.8' # Google
+        '4.2.2.2' # Level3
+    )
 
-if [[ -n $AMAZON_EC2 ]]; then
-    NAME_SERVERS=()
-fi
+    if [[ -n $AMAZON_EC2 ]]; then
+        NAME_SERVERS=()
+    fi
 
-if [[ -n $VMWARE ]]; then
-    NAME_SERVERS+=( $(route -n | \
-        grep -E 'UG[ \t]' | \
-            awk '{ print $2 }') )
-fi
+    if [[ -n $VMWARE ]]; then
+        NAME_SERVERS+=( $(route -n | \
+            grep -E 'UG[ \t]' | \
+                awk '{ print $2 }') )
+    fi
 
-cat <<EOF | sed -e '/^$/d' > /etc/resolvconf/resolv.conf.d/tail
+    cat <<EOF | sed -e '/^$/d' > /etc/resolvconf/resolv.conf.d/tail
 $(for server in "${NAME_SERVERS[@]}"; do
     echo "nameserver $server"
 done)
 options timeout:2 attempts:1 rotate single-request-reopen edns0
 EOF
 
-chown root: /etc/resolvconf/resolv.conf.d/tail
-chmod 644 /etc/resolvconf/resolv.conf.d/tail
+    chown root: /etc/resolvconf/resolv.conf.d/tail
+    chmod 644 /etc/resolvconf/resolv.conf.d/tail
 
-resolvconf -u
+    resolvconf -u
+else
+    # Provide a most generic eth0 configuration for Netplan.  However,
+    # adding a list of DNS servers to be the upstream resolvers seem
+    # not to work as intended even though `use-dns` option is explicitly
+    # endabled (which is also the default), thus the following are
+    # disabled for now:
+    #   nameservers:
+    #     addresses:
+    #       - 1.1.1.1
+    #       - 8.8.8.8
+    #       - 4.2.2.2
+    cat <<'EOF' > /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: true
+      dhcp4-overrides:
+        use-dns: true
+        send-hostname: false
+      dhcp6: false
+EOF
+
+    chown root: /etc/netplan/01-netcfg.yaml
+    chmod 644 /etc/netplan/01-netcfg.yaml
+fi
 
 apt-get --assume-yes install libnss-myhostname
 
@@ -859,7 +910,8 @@ cat <<'EOF' > /etc/sysctl.conf
 #
 EOF
 
-# Disabled for now, as hese values are too aggressive to consider these a safe defaults:
+# Disabled for now, as these values are too aggressive to consider
+# these a safe defaults.
 #   vm.overcommit_ratio = 80 (default: 50)
 #   vm.overcommit_memory = 2 (default: 0)
 cat <<'EOF' > /etc/sysctl.d/10-virtual-memory.conf
@@ -870,6 +922,13 @@ vm.dirty_background_ratio = 5
 vm.dirty_expire_centisecs = 12000
 vm.mmap_min_addr = 65536
 EOF
+
+# Make sure that the BBR module is loaded automatically.
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+    if ! grep -q -E '^tcp_bbr' /etc/modules; then
+        echo 'tcp_bbr' > /etc/modules
+    fi
+fi
 
 cat <<EOF | sed -e '/^$/d' > /etc/sysctl.d/10-network.conf
 net.core.default_qdisc = fq_codel
@@ -885,8 +944,13 @@ net.ipv4.tcp_early_retrans = 1
 net.ipv4.tcp_no_metrics_save = 1
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.tcp_slow_start_after_idle = 0
+$(if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+    echo 'net.ipv4.tcp_congestion_control = bbr'
+else
+    echo 'net.ipv4.tcp_congestion_control = cubic'
+fi)
 net.ipv4.ip_local_port_range = 1024 65535
-$(if [[ -n $AMAZON_EC2 ]]; then
+$(if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
     echo 'net.ipv4.neigh.default.gc_thresh1 = 0'
 fi)
 EOF
@@ -970,12 +1034,6 @@ chown root: /etc/sysctl.conf \
 chmod 644 /etc/sysctl.conf \
           /etc/sysctl.d/*
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
-    systemctl start procps
-else
-    service procps start
-fi
-
 cat <<'EOF' > /etc/sysfs.d/clock_source.conf
 devices/system/clocksource/clocksource0/current_clocksource = tsc
 EOF
@@ -983,11 +1041,14 @@ EOF
 # Adjust the queue size (for a moderate load on the node)
 # accordingly when using Receive Packet Steering (RPS)
 # functionality (setting the "rps_flow_cnt" accordingly).
+#
+# Disabled for now, as these values are problematic to set such that
+# these will work after being applied each time system would start up.
+#   class/net/${nic}/queues/rx-0/rps_cpus = f
+#   class/net/${nic}/queues/tx-0/xps_cpus = f
 for nic in $(ls -1 /sys/class/net | grep -E 'eth*' 2>/dev/null | sort); do
     cat <<EOF | tee -a /etc/sysfs.d/network.conf >/dev/null
 class/net/${nic}/tx_queue_len = 5000
-class/net/${nic}/queues/rx-0/rps_cpus = f
-class/net/${nic}/queues/tx-0/xps_cpus = f
 class/net/${nic}/queues/rx-0/rps_flow_cnt = 32768
 EOF
 done
@@ -1000,7 +1061,12 @@ done
 if [[ -z $AMAZON_EC2 ]]; then
     for block in $(ls -1 /sys/block | grep -E '(sd|vd|dm).*' 2>/dev/null | sort); do
         NR_REQUESTS="block/${block}/queue/nr_requests = 256"
+
         SCHEDULER="block/${block}/queue/scheduler = noop"
+        if [[ ! $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+            SCHEDULER="block/${block}/queue/scheduler = none"
+        fi
+
         if [[ $block =~ ^dm.*$ ]]; then
             NR_REQUESTS=''
             SCHEDULER=''
@@ -1037,12 +1103,6 @@ chown root: /etc/sysfs.conf \
 chmod 644 /etc/sysfs.conf \
           /etc/sysfs.d/*
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
-    systemctl restart sysfsutils
-else
-    service sysfsutils restart
-fi
-
 # Restrict access to PID directories under "/proc". This will
 # make it more difficult for users to gather information about
 # the processes of other users. User "root" and users who are
@@ -1070,7 +1130,7 @@ done
 chown root: /etc/rsyslog.d/50-default.conf
 chmod 644 /etc/rsyslog.d/50-default.conf
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     # A list of services we want to disable and mask in systemd,
     # as these not only pose a security risk, but also delay the
     # total boot time.

@@ -6,6 +6,8 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
 source /var/tmp/helpers/default.sh
 
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly VMWARE_FILES='/var/tmp/vmware'
 
 # As Packer will upload guest additions to the home directory of the same
@@ -41,7 +43,7 @@ case "$PACKER_BUILDER_TYPE" in
         # Disable the X11 support and automatic driver compilation.
         for service in vboxadd vboxadd-x11; do
             {
-                if [[ $UBUNTU_VERSION == '16.04' ]]; then
+                if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
                     for option in stop disable; do
                         systemctl "$option" "$service";
                     done

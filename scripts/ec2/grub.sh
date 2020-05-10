@@ -4,14 +4,7 @@ set -e
 
 export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-detect_grub2() {
-    local status=0
-    set +e
-    [[ $(grub-install --version 2>/dev/null) =~ (1.9|2.0) ]]
-    status=$?
-    set -e
-    return $status
-}
+source /var/tmp/helpers/default.sh
 
 KERNEL_OPTIONS=(
     'quiet'

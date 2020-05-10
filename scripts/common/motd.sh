@@ -15,6 +15,10 @@ PACKAGES=(
     'landscape-common'
 )
 
+if [[ ! $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+    PACKAGES=( 'landscape-common' )
+fi
+
 apt_get_update
 
 for package in "${PACKAGES[@]}"; do
@@ -25,6 +29,7 @@ done
 rm -f /etc/legal
 
 rm -f /etc/update-motd.d/10-help-text \
+      /etc/update-motd.d/50-motd-news \
       /etc/update-motd.d/51-cloudguest \
       /etc/update-motd.d/90-updates-available \
       /etc/update-motd.d/91-release-upgrade \
@@ -45,16 +50,14 @@ chown root: /etc/landscape/client.conf
 chmod 644 /etc/landscape/client.conf
 
 if [[ -f /etc/init.d/landscape-client ]]; then
-    {
-        if [[ $UBUNTU_VERSION == '16.04' ]]; then
-            for option in stop disable; do
-                systemctl "$option" landscape-client || true
-            done
-        else
-          service landscape-client stop
-          update-rc.d -f landscape-client disable
-        fi
-    } || true
+    if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+        for option in stop disable; do
+            systemctl "$option" landscape-client || true
+        done
+    else
+        service landscape-client stop || true
+        update-rc.d -f landscape-client disable
+    fi
 fi
 
 cat <<'EOF' > /etc/update-motd.d/99-footer

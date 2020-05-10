@@ -7,6 +7,7 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly EC2_FILES='/var/tmp/ec2'
+
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
 
 [[ -d $EC2_FILES ]] || mkdir -p $EC2_FILES
@@ -31,7 +32,7 @@ PACKAGES=(
     'ruby2.3'
 )
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     PACKAGES+=( 'ruby2.3' )
 else
     PACKAGES+=( 'ruby1.9.3' )

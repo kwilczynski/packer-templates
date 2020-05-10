@@ -7,6 +7,7 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly EC2_FILES='/var/tmp/ec2'
+
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
 
 [[ -d $EC2_FILES ]] || mkdir -p "$EC2_FILES"
@@ -61,7 +62,7 @@ find ./build -type f -name 'cfn-*' -print0 | xargs -0 \
 python setup.py install -O2 \
     --install-scripts='/usr/local/bin'
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     # The cfn-hup script does not really support systemd.
     cat <<'EOF' > /lib/systemd/system/cfn-hup.service
     [Unit]

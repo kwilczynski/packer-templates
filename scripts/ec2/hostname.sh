@@ -15,7 +15,7 @@ EOF
 chown root: /etc/hosts
 chmod 644 /etc/hosts
 
-if [[ $UBUNTU_VERSION == '16.04' ]] ; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     HOSTNAME=$(wget -O- http://169.254.169.254/latest/meta-data/local-hostname 2>/dev/null)
     if [[ -n $HOSTNAME ]]; then
         hostnamectl --static set-hostname "$HOSTNAME"
@@ -29,7 +29,7 @@ fi
 
 for service in syslog syslog-ng rsyslog systemd-journald; do
     {
-        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+        if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
             systemctl stop "$service"
         else
             service "$service" stop

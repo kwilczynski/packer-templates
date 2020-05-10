@@ -7,8 +7,10 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly DOCKER_FILES='/var/tmp/docker'
+
 readonly UBUNTU_RELEASE=$(detect_ubuntu_release)
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 [[ -d $DOCKER_FILES ]] || mkdir -p "$DOCKER_FILES"
@@ -82,7 +84,7 @@ for package in "${PACKAGES[@]}"; do
 done
 
 {
-    if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
         systemctl stop docker
     else
         service docker stop
@@ -95,7 +97,7 @@ done
 # on a separate mount point, etc.
 if [[ -n $AMAZON_EC2 ]]; then
     {
-        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+        if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
             systemctl disable docker
         else
             update-rc.d -f docker disable
@@ -111,7 +113,7 @@ fi
 
 for user in $(echo "root vagrant ubuntu ${USER}" | tr ' ' '\n' | sort -u); do
     if getent passwd "$user" &>/dev/null; then
-        usermod -aG docker "$user"
+        usermod -a -G docker "$user"
     fi
 done
 
@@ -192,7 +194,11 @@ pushd /opt/docker-compose &>/dev/null
 
 # This is needed, as virtualenv by default will install
 # some really old version (e.g. 12.0.x, etc.), sadly.
-pip install --upgrade setuptools
+if [[ $UBUNTU_VERSION =~ '12.04' ]]; then
+    pip install --upgrade setuptools==43.0.0
+else
+    pip install --upgrade setuptools
+fi
 
 # Resolve the "InsecurePlatformWarning" warning.
 pip install --upgrade ndg-httpsclient
@@ -264,7 +270,7 @@ if [[ -f /etc/default/ufw ]]; then
 fi
 
 grep 'docker' /proc/mounts | awk '{ print length, $2 }' | \
-    sort -gr | cut -d' ' -f2- | xargs umount -l -f 2> /dev/null || true
+    sort -g -r | cut -d' ' -f2- | xargs umount -l -f 2> /dev/null || true
 
 # This would normally be on a separate volume,
 # and most likely formatted to use "btrfs".

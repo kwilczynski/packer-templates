@@ -48,7 +48,7 @@ for file in "${FILES[@]}"; do
     fi
 done
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     printf "\n"
     {
       systemctl status

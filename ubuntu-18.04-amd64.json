@@ -1,13 +1,11 @@
 {
   "variables": {
-    "name": "ubuntu-14.04-amd64-docker",
-    "description": "Ubuntu 14.04 x86_64 (amd64) with Docker",
+    "name": "ubuntu-18.04-amd64",
+    "description": "Ubuntu 18.04 x86_64 (amd64)",
     "version": "0.1.0",
     "releases_mirror": "releases.ubuntu.com",
     "archive_mirror": "archive.ubuntu.com",
     "build_number": "{{env `BUILD_NUMBER`}}",
-    "docker_version": "{{env `DOCKER_VERSION`}}",
-    "docker_compose_version": "{{env `DOCKER_COMPOSE_VERSION`}}",
     "zfs": "false",
     "ruby": "false",
     "ruby_version": "{{env `RUBY_VERSION`}}",
@@ -63,9 +61,16 @@
       "headless": "{{user `headless`}}",
       "vm_name": "packer_{{user `name`}}",
       "boot_command": [
-        "<esc><wait>",
-        "<esc><wait>",
-        "<enter><wait>",
+        "<enter><wait><f6><esc>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
         "/install/vmlinuz<wait>",
         " auto<wait>",
         " console-setup/ask_detect=false<wait>",
@@ -84,7 +89,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-14.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -93,11 +98,11 @@
       "guest_additions_path": "VBoxGuestAdditions_{{ .Version }}.iso",
       "guest_os_type": "Ubuntu_64",
       "http_directory": "http",
-      "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
+      "iso_checksum": "e2ecdace33c939527cbc9e8d23576381c493b071107207d2040af72595f8990b",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso",
-        "http://cdimage.ubuntu.com/ubuntu/releases/14.04/release/ubuntu-14.04.6-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/18.04/ubuntu-18.04.4-server-amd64.iso",
+        "http://cdimage.ubuntu.com/ubuntu/releases/18.04/release/ubuntu-18.04.4-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -146,62 +151,6 @@
       "headless": "{{user `headless`}}",
       "vm_name": "packer_{{user `name`}}",
       "boot_command": [
-        "<esc><wait>",
-        "<esc><wait>",
-        "<enter><wait>",
-        "/install/vmlinuz<wait>",
-        " auto<wait>",
-        " console-setup/ask_detect=false<wait>",
-        " console-setup/layoutcode=us<wait>",
-        " console-setup/modelcode=pc105<wait>",
-        " debconf/frontend=noninteractive<wait>",
-        " debian-installer=en_US<wait>",
-        " fb=false<wait>",
-        " initrd=/install/initrd.gz<wait>",
-        " kbd-chooser/method=us<wait>",
-        " keyboard-configuration/layout=USA<wait>",
-        " keyboard-configuration/variant=USA<wait>",
-        " locale=en_US<wait>",
-        " domain=localdomain<wait>",
-        " hostname=localhost<wait>",
-        " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
-        " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
-        " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-14.04/preseed.cfg<wait>",
-        " -- <wait>",
-        "<enter><wait>"
-      ],
-      "boot_wait": "10s",
-      "disk_size": 40960,
-      "skip_compaction": true,
-      "guest_os_type": "ubuntu-64",
-      "http_directory": "http",
-      "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
-      "iso_checksum_type": "sha256",
-      "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso",
-        "http://cdimage.ubuntu.com/ubuntu/releases/14.04/release/ubuntu-14.04.6-server-amd64.iso"
-      ],
-      "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
-      "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
-      "ssh_username": "vagrant",
-      "ssh_password": "vagrant",
-      "ssh_port": 22,
-      "ssh_timeout": "3600s",
-      "ssh_handshake_attempts": 30,
-      "tools_upload_flavor": "linux",
-      "vmx_remove_ethernet_interfaces": true,
-      "vmx_data": {
-        "numvcpus": "1",
-        "cpuid.coresPerSocket": "1",
-        "memsize": "768"
-      }
-    },
-    {
-      "type": "proxmox",
-      "vm_name": "packer-{{user `name`}}",
-      "vm_id": "{{user `virtual_machine_id`}}",
-      "boot_command": [
         "<enter><wait><f6><esc>",
         "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
         "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
@@ -230,7 +179,63 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-14.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-18.04/preseed.cfg<wait>",
+        " -- <wait>",
+        "<enter><wait>"
+      ],
+      "boot_wait": "10s",
+      "disk_size": 40960,
+      "skip_compaction": true,
+      "guest_os_type": "ubuntu-64",
+      "http_directory": "http",
+      "iso_checksum": "e2ecdace33c939527cbc9e8d23576381c493b071107207d2040af72595f8990b",
+      "iso_checksum_type": "sha256",
+      "iso_urls": [
+        "http://{{user `releases_mirror`}}/18.04/ubuntu-18.04.4-server-amd64.iso",
+        "http://cdimage.ubuntu.com/ubuntu/releases/18.04/release/ubuntu-18.04.4-server-amd64.iso"
+      ],
+      "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
+      "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
+      "ssh_username": "vagrant",
+      "ssh_password": "vagrant",
+      "ssh_port": 22,
+      "ssh_timeout": "3600s",
+      "ssh_handshake_attempts": 30,
+      "tools_upload_flavor": "linux",
+      "vmx_remove_ethernet_interfaces": true,
+      "vmx_data": {
+        "numvcpus": "1",
+        "cpuid.coresPerSocket": "1",
+        "memsize": "768"
+      }
+    },
+    {
+      "type": "proxmox",
+      "vm_name": "packer-{{user `name`}}",
+      "vm_id": "{{user `virtual_machine_id`}}",
+      "boot_command": [
+        "<esc><wait>",
+        "<esc><wait>",
+        "<enter><wait>",
+        "/install/vmlinuz<wait>",
+        " auto<wait>",
+        " console-setup/ask_detect=false<wait>",
+        " console-setup/layoutcode=us<wait>",
+        " console-setup/modelcode=pc105<wait>",
+        " debconf/frontend=noninteractive<wait>",
+        " debian-installer=en_US<wait>",
+        " fb=false<wait>",
+        " initrd=/install/initrd.gz<wait>",
+        " kbd-chooser/method=us<wait>",
+        " keyboard-configuration/layout=USA<wait>",
+        " keyboard-configuration/variant=USA<wait>",
+        " locale=en_US<wait>",
+        " domain=localdomain<wait>",
+        " hostname=localhost<wait>",
+        " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
+        " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
+        " noapic<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -292,7 +297,7 @@
       "source_ami": "{{user `source_ami`}}",
       "source_ami_filter": {
         "filters": {
-          "name": "*ubuntu-trusty-14.04-amd64-server-*",
+          "name": "*ubuntu-bionic-18.04-amd64-server-*",
           "root-device-type": "ebs",
           "virtualization-type": "hvm"
         },
@@ -351,7 +356,7 @@
       "source_ami": "{{user `source_ami`}}",
       "source_ami_filter": {
         "filters": {
-          "name": "*ubuntu-trusty-14.04-amd64-server-*",
+          "name": "*ubuntu-bionic-18.04-amd64-server-*",
           "root-device-type": "instance-store",
           "virtualization-type": "hvm"
         },
@@ -403,11 +408,6 @@
     {
       "type": "file",
       "source": "files/common",
-      "destination": "/var/tmp"
-    },
-    {
-      "type": "file",
-      "source": "files/docker",
       "destination": "/var/tmp"
     },
     {
@@ -468,8 +468,6 @@
         "PACKER_BUILD_NAME={{user `name`}}",
         "PACKER_BUILD_TIMESTAMP={{timestamp}}",
         "PACKER_BUILD_VERSION={{user `version`}}",
-        "DOCKER_VERSION={{user `docker_version`}}",
-        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
         "RUBY_VERSION={{user `ruby_version`}}",
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
@@ -495,7 +493,6 @@
         "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
-        "scripts/common/docker.sh",
         "scripts/common/sudoers.sh",
         "scripts/vagrant/grub.sh",
         "scripts/common/clean-up.sh",
@@ -513,8 +510,6 @@
         "PACKER_BUILD_NAME={{user `name`}}",
         "PACKER_BUILD_TIMESTAMP={{timestamp}}",
         "PACKER_BUILD_VERSION={{user `version`}}",
-        "DOCKER_VERSION={{user `docker_version`}}",
-        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
         "RUBY_VERSION={{user `ruby_version`}}",
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
@@ -538,7 +533,6 @@
         "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
         "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
-        "scripts/common/docker.sh",
         "scripts/common/sudoers.sh",
         "scripts/proxmox/grub.sh",
         "scripts/common/clean-up.sh"
@@ -563,8 +557,6 @@
         "AWS_CFN_BOOTSTRAP_VERSION={{user `aws_cfn_bootstrap_version`}}",
         "SRIOV_DRIVER_VERSION={{user `sriov_driver_version`}}",
         "ENA_DRIVER_VERSION={{user `ena_driver_version`}}",
-        "DOCKER_VERSION={{user `docker_version`}}",
-        "DOCKER_COMPOSE_VERSION={{user `docker_compose_version`}}",
         "RUBY_VERSION={{user `ruby_version`}}",
         "ITAMAE_VERSION={{user `itamae_version`}}",
         "CHEF_CLIENT_VERSION={{user `chef_client_version`}}"
@@ -593,7 +585,6 @@
             "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
-            "scripts/common/docker.sh",
             "scripts/common/clean-up.sh",
             "scripts/common/sudoers.sh",
             "scripts/ec2/grub.sh"
@@ -620,7 +611,6 @@
             "{{if eq (user `itamae`) `true` }}scripts/common/itamae.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `chef_client`) `true` }}scripts/common/chef-client.sh{{else}}scripts/common/dummy.sh{{end}}",
             "{{if eq (user `zfs`) `true` }}scripts/common/zfs.sh{{else}}scripts/common/dummy.sh{{end}}",
-            "scripts/common/docker.sh",
             "scripts/common/clean-up.sh",
             "scripts/common/sudoers.sh",
             "scripts/ec2/grub.sh"

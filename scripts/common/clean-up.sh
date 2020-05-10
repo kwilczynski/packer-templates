@@ -14,13 +14,15 @@ readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 readonly VMWARE=$(detect_vmware && echo 'true')
 readonly PROXMOX=$(detect_proxmox && echo 'true')
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+[[ -d $COMMON_FILES ]] || mkdir -p "$COMMON_FILES"
+
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     systemctl daemon-reload
 fi
 
 for service in syslog syslog-ng rsyslog systemd-journald; do
     {
-        if [[ $UBUNTU_VERSION == '16.04' ]]; then
+        if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
             systemctl stop "$service"
         else
             service "$service" stop
@@ -33,7 +35,7 @@ logrotate -f /etc/logrotate.conf || true
 # Remove the Ubuntu Extended Security Maintenance (ESM)
 # as it is a paid feature only available to Canonical
 # Advantage subscribers.
-apt-key adv --batch --yes --delete-keys 'esm@canonical.com' || true
+apt-key adv --batch --yes --delete-keys 'esm@canonical.com' 2>/dev/null || true
 find /etc/apt/sources.list.d -type f -name 'ubuntu-esm-*' -print0 | \
     xargs -0 rm -f
 
@@ -49,14 +51,14 @@ dpkg -l | awk '{ print $2 }' | \
         grep -v "$(uname -r | sed -e 's/\-generic//;s/\-lowlatency//;s/\-aws//')" | \
             xargs apt-get --assume-yes purge
 
-# Remove old Kernel images that are not the current one.
+# Remove old Kernel images and modules that are not the current one.
 dpkg -l | awk '{ print $2 }' | \
-    grep -E 'linux-image-.*-(generic|aws)' | \
+    grep -E 'linux-(image|modules)-.*-(generic|aws)' | \
         grep -v "$(uname -r)" | xargs apt-get --assume-yes purge
 
 # Remove development packages.
 dpkg -l | awk '{ print $2 }' | grep -E -- '.*-dev:?.*' | \
-    grep -vE "(libc|$(dpkg -s g++ &>/dev/null && echo 'libstdc++')|gcc)" | \
+    grep -v -E "(libc|$(dpkg -s g++ &>/dev/null && echo 'libstdc++')|gcc)" | \
         xargs apt-get --assume-yes purge
 
 # A list of packages to be purged.
@@ -68,7 +70,7 @@ if [[ -z $AMAZON_EC2 || -z $PROXMOX || $PACKER_BUILDER_TYPE =~ ^amazon-ebs$ ]]; 
     # Remove Ruby ONLY when any sensible version was not installed, or
     # when the Itamae Ruby gem (and its dependencies) were not installed.
     if [[ -z $RUBY_VERSION || -z $ITAMAE_VERSION ]] && \
-          ! ( apt-cache policy | grep -qF 'brightbox' )
+          ! ( apt-cache policy | grep -q -F 'brightbox' )
     then
         PACKAGES_TO_PURGE+=(
             '^libruby[0-9]\.'
@@ -103,7 +105,7 @@ if [[ -n $AMAZON_EC2 ]]; then
     )
 fi
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
   # Remove LXD and LXCFS as Docker will be installed.
     PACKAGES_TO_PURGE+=(
         'lxd'
@@ -147,7 +149,7 @@ done
 
 # No need to automatically adjust the CPU scheduler.
 {
-    if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
         for option in stop disable; do
             systemctl "$option" ondemand || true
         done
@@ -187,12 +189,15 @@ rm -f /root/.bash_history \
       /root/*.tar \
       /root/.*_history \
       /root/.lesshst \
-      /root/.gemrc
+      /root/.wget* \
+      /root/.gemrc \
+      /roor/.sudo*
 
 rm -Rf /root/.cache \
        /root/.{gem,gems} \
        /root/.vim* \
        /root/.ssh \
+       /root/.gnupg \
        /root/*
 
  USERS=('vagrant')
@@ -208,10 +213,13 @@ for user in "${USERS[@]}"; do
               /home/${user:?}/*.tar \
               /home/${user:?}/.*_history \
               /home/${user:?}/.lesshst \
-              /home/${user:?}/.gemrc
+              /home/${user:?}/.wget* \
+              /home/${user:?}/.gemrc \
+              /home/${user:?}/.sudo*
 
         rm -Rf /home/${user:?}/.cache \
                /home/${user:?}/.{gem,gems} \
+               /home/${user:?}/.gnupg \
                /home/${user:?}/.vim* \
                /home/${user:?}/*
     fi
@@ -306,7 +314,7 @@ for rule in "${UDEV_RULES[@]}"; do
     ln -sf /dev/null "/etc/udev/rules.d/${rule}"
 done
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     # Override systemd configuration ...
     rm -f /etc/systemd/network/99-default.link
     ln -sf /dev/null /etc/systemd/network/99-default.link
@@ -327,14 +335,19 @@ if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
     if [[ $UBUNTU_VERSION == '12.04' ]]; then
         rm -f /etc/udev/rules.d/70-persistent-net.rules
     else
-        rm -f /etc/network/interfaces.d/50-cloud-init.cfg \
-              /etc/systemd/network/50-cloud-init-eth0.link \
-              /etc/udev/rules.d/70-persistent-net.rules
+        if [[ ! $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+            rm -f /etc/systemd/network/50-cloud-init-eth0.link \
+                  /etc/udev/rules.d/70-persistent-net.rules
+        else
+            rm -f /etc/network/interfaces.d/50-cloud-init.cfg \
+                  /etc/systemd/network/50-cloud-init-eth0.link \
+                  /etc/udev/rules.d/70-persistent-net.rules
 
-        pushd /etc/network/interfaces.d &>/dev/null
-        mknod .null c 1 3
-        ln -sf .null 50-cloud-init.cfg
-        popd &>/dev/null
+            pushd /etc/network/interfaces.d &>/dev/null
+            mknod .null c 1 3
+            ln -sf .null 50-cloud-init.cfg
+            popd &>/dev/null
+        fi
     fi
 
     pushd /etc/udev/rules.d &>/dev/null
@@ -381,8 +394,8 @@ else
   # time, or a new key will be fetched and stored by means of
   # cloud-init, etc.
   if ! getent passwd vagrant &> /dev/null; then
-      find /etc /root /home -type f -name 'authorized_keys' -print0 | \
-          xargs -0 rm -f
+    find /etc /root /home -type f -name 'authorized_keys' -print0 | \
+        xargs -0 rm -f
   fi
 fi
 
@@ -401,7 +414,7 @@ chmod -R 755 /usr/share/man
 
 # Newer version of Ubuntu introduce a dedicated
 # "_apt" user, which owns the temporary files.
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     chown _apt: /var/lib/apt/lists/partial
 fi
 

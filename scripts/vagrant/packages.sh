@@ -6,6 +6,8 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
 source /var/tmp/helpers/default.sh
 
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly HOSTNAME="ubuntu$(detect_ubuntu_version | tr -d '.')"
 readonly FQDN="${HOSTNAME}.localdomain"
 
@@ -80,12 +82,13 @@ chown root: /etc/mailname
 chmod 644 /etc/mailname
 
 apt_get_update
+
 apt-get --assume-yes install postfix
 
-if [[ $UBUNTU_VERSION == '16.04' ]]; then
-  systemctl stop postfix
+if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+    systemctl stop postfix
 else
-  service postfix stop
+    service postfix stop
 fi
 
 dpkg-reconfigure postfix
@@ -111,9 +114,9 @@ sed -i -e \
 newaliases
 
 for action in restart stop; do
-  if [[ $UBUNTU_VERSION == '16.04' ]]; then
-    systemctl "$action" postfix
-  else
-    service postfix "$action"
+    if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+        systemctl "$action" postfix
+    else
+        service postfix "$action"
   fi
 done

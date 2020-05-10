@@ -34,6 +34,13 @@ apt-get --assume-yes update \
 # Ondřej's Apache2 repository provides more up-to-date version
 # of the OpenSSL library, compared to an old version available
 # by default in Ubuntu.
-apt-get --assume-yes install openssl
+PACKAGES=(
+    'openssl'
+    'libssl1.1'
+)
+
+for package in "${PACKAGES[@]}"; do
+    apt-get --assume-yes install "$package"
+done
 
 rm -f "${OPENSSL_FILES}/ondrej.key"

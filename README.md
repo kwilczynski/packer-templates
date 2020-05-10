@@ -4,9 +4,13 @@ Currently supported images:
 
 **WARNING**: Ubuntu 12.04 (Precise Pangolin) is past its **End of Life.**
 
+**WARNING**: Ubuntu 14.04 (Trusty Tahr) is currently approaching its **Eof of Life** and has entered  
+into the Extended Security Maintenance cycle.
+
 - Ubuntu 12.04 "Precise Pangolin" (version: 12.04.5)
 - Ubuntu 14.04 "Trusty Tahr" (version: 14.04.6)
 - Ubuntu 16.04 "Xenial Xerus" (version: 16.04.6)
+- Ubuntu 18.04 "Bionic Beaver" (version: 18.04.4)
 
 Up to date Vagrant boxes can be found at https://app.vagrantup.com/kwilczynski.
 

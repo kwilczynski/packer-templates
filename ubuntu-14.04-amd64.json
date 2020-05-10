@@ -94,7 +94,8 @@
       "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso",
+        "http://cdimage.ubuntu.com/ubuntu/releases/14.04/release/ubuntu-14.04.6-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -176,7 +177,8 @@
       "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso",
+        "http://cdimage.ubuntu.com/ubuntu/releases/14.04/release/ubuntu-14.04.6-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",

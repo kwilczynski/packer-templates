@@ -1,7 +1,7 @@
 {
   "variables": {
-    "name": "ubuntu-14.04-amd64-docker",
-    "description": "Ubuntu 14.04 x86_64 (amd64) with Docker",
+    "name": "ubuntu-18.04-amd64-docker",
+    "description": "Ubuntu 18.04 x86_64 (amd64) with Docker",
     "version": "0.1.0",
     "releases_mirror": "releases.ubuntu.com",
     "archive_mirror": "archive.ubuntu.com",
@@ -84,7 +84,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-14.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -93,11 +93,11 @@
       "guest_additions_path": "VBoxGuestAdditions_{{ .Version }}.iso",
       "guest_os_type": "Ubuntu_64",
       "http_directory": "http",
-      "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
+      "iso_checksum": "e2ecdace33c939527cbc9e8d23576381c493b071107207d2040af72595f8990b",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso",
-        "http://cdimage.ubuntu.com/ubuntu/releases/14.04/release/ubuntu-14.04.6-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/18.04/ubuntu-18.04.4-server-amd64.iso",
+        "http://cdimage.ubuntu.com/ubuntu/releases/18.04/release/ubuntu-18.04.4-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-virtualbox/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -167,7 +167,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-14.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -176,11 +176,11 @@
       "skip_compaction": true,
       "guest_os_type": "ubuntu-64",
       "http_directory": "http",
-      "iso_checksum": "b17d7c1e9d0321ad5810ba77b69aef43f0f29a5422b08120e6ee0576c4527c0e",
+      "iso_checksum": "e2ecdace33c939527cbc9e8d23576381c493b071107207d2040af72595f8990b",
       "iso_checksum_type": "sha256",
       "iso_urls": [
-        "http://{{user `releases_mirror`}}/14.04/ubuntu-14.04.6-server-amd64.iso",
-        "http://cdimage.ubuntu.com/ubuntu/releases/14.04/release/ubuntu-14.04.6-server-amd64.iso"
+        "http://{{user `releases_mirror`}}/18.04/ubuntu-18.04.4-server-amd64.iso",
+        "http://cdimage.ubuntu.com/ubuntu/releases/18.04/release/ubuntu-18.04.4-server-amd64.iso"
       ],
       "output_directory": "artifacts/vagrant-vmware/{{user `name`}}",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now",
@@ -202,16 +202,9 @@
       "vm_name": "packer-{{user `name`}}",
       "vm_id": "{{user `virtual_machine_id`}}",
       "boot_command": [
-        "<enter><wait><f6><esc>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
-        "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+        "<esc><wait>",
+        "<esc><wait>",
+        "<enter><wait>",
         "/install/vmlinuz<wait>",
         " auto<wait>",
         " console-setup/ask_detect=false<wait>",
@@ -230,7 +223,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-14.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -292,7 +285,7 @@
       "source_ami": "{{user `source_ami`}}",
       "source_ami_filter": {
         "filters": {
-          "name": "*ubuntu-trusty-14.04-amd64-server-*",
+          "name": "*ubuntu-bionic-18.04-amd64-server-*",
           "root-device-type": "ebs",
           "virtualization-type": "hvm"
         },
@@ -351,7 +344,7 @@
       "source_ami": "{{user `source_ami`}}",
       "source_ami_filter": {
         "filters": {
-          "name": "*ubuntu-trusty-14.04-amd64-server-*",
+          "name": "*ubuntu-bionic-18.04-amd64-server-*",
           "root-device-type": "instance-store",
           "virtualization-type": "hvm"
         },

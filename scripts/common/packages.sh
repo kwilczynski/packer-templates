@@ -7,6 +7,7 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 source /var/tmp/helpers/default.sh
 
 readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 
 # A list of common packages to be installed.
@@ -15,14 +16,29 @@ PACKAGES=(
     'wget'
     'curl'
     'vim'
+    'net-tools'
     'haveged'
     'iptables'
     'irqbalance'
-    'heirloom-mailx'
     'software-properties-common'
     'python-software-properties'
     'apt-transport-https'
 )
+
+if [[ $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
+    PACKAGES+=(
+        'heirloom-mailx'
+    )
+else
+    # Replaced old package called: heirloom-mailx
+    PACKAGES+=(
+        's-nail'
+    )
+fi
+
+if [[ ! $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+    PACKAGES=( ${PACKAGES[@]/'python-software-properties'} )
+fi
 
 apt_get_update
 
@@ -30,8 +46,19 @@ for package in "${PACKAGES[@]}"; do
     apt-get --assume-yes install "$package"
 done
 
+# Provide the symbolik link that the heirloom-mailx package used to create.
+ln -s -f \
+    /usr/bin/s-nail \
+    /usr/bin/heirloom-mailx
+
+if ! update-alternatives --query mailx 2>/dev/null; then
+    update-alternatives \
+        --install /usr/bin/mailx mailx /usr/bin/s-nail 60 \
+        --slave /usr/bin/mail mail /usr/bin/s-nail
+fi
+
 {
-    if [[ $UBUNTU_VERSION == '16.04' ]]; then
+    if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
         systemctl stop ntp
     else
         service ntp stop

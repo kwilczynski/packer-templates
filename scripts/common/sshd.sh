@@ -6,6 +6,8 @@ export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
 source /var/tmp/helpers/default.sh
 
+readonly UBUNTU_VERSION=$(detect_ubuntu_version)
+
 readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 readonly PROXMOX=$(detect_proxmox && echo 'true')
 
@@ -14,9 +16,14 @@ SSH_SETTINGS=(
     'Compression no'
     'PermitRootLogin no'
     'GSSAPIAuthentication no'
-    'UsePrivilegeSeparation sandbox'
-    'ServerKeyBits 2048'
 )
+
+if [[ $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+    SSH_SETTINGS+=(
+        'UsePrivilegeSeparation sandbox'
+        'ServerKeyBits 2048'
+    )
+fi
 
 # The key exchange (KEX) algorithms.
 KEX_ALGORITHMS=(
@@ -39,16 +46,28 @@ CIPHERS=(
 SSH_SETTINGS+=( "Ciphers $(join $',' "${CIPHERS[@]}")" )
 
 # The MAC (Message Authentication Code) algorithms.
-MACS=(
-    'hmac-sha2-512-etm@openssh.com'
-    'hmac-sha2-256-etm@openssh.com'
-    'hmac-ripemd160-etm@openssh.com'
-    'umac-128-etm@openssh.com'
-    'hmac-sha2-512'
-    'hmac-sha2-256'
-    'hmac-ripemd160'
-    'umac-128@openssh.com'
-)
+if [[ ! $UBUNTU_VERSION =~ ^(12|14|16).04$ ]]; then
+    MACS=(
+        'hmac-sha2-512-etm@openssh.com'
+        'hmac-sha2-256-etm@openssh.com'
+        'umac-128-etm@openssh.com'
+        'hmac-sha2-512'
+        'hmac-sha2-256'
+        'umac-128@openssh.com'
+    )
+else
+    # Note that modern OpenSSH does not include HMAC-RIPMED-160 any longer.
+    MACS=(
+        'hmac-sha2-512-etm@openssh.com'
+        'hmac-sha2-256-etm@openssh.com'
+        'hmac-ripemd160-etm@openssh.com'
+        'umac-128-etm@openssh.com'
+        'hmac-sha2-512'
+        'hmac-sha2-256'
+        'hmac-ripemd160'
+        'umac-128@openssh.com'
+    )
+fi
 
 SSH_SETTINGS+=( "MACs $(join $',' "${MACS[@]}")" )
 
@@ -81,7 +100,7 @@ if wget -O /dev/null --no-proxy --tries 1 --connect-timeout=2 https://2ton.com.a
     # that offers continuusly fresh copy as a public service.
     for bits in 2048 3072 4096 8192; do
         wget -q -O - "https://2ton.com.au/dhparam/${bits}/ssh" | \
-            grep -vE '^#' | tee -a /etc/ssh/moduli >/dev/null
+            grep -v -E '^#' | tee -a /etc/ssh/moduli >/dev/null
     done
 else
     # Remove unsafe bit sizes.
@@ -99,6 +118,6 @@ for value in "${SSH_SETTINGS[@]}"; do
         "s/^#\?${SETTING[0]}.*/${value}/" \
         /etc/ssh/sshd_config
 
-    grep -qF "$value" /etc/ssh/sshd_config || echo "$value" | \
+    grep -q -F "$value" /etc/ssh/sshd_config || echo "$value" | \
         tee -a /etc/ssh/sshd_config >/dev/null
 done
