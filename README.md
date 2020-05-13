@@ -4,8 +4,7 @@ Currently supported images:
 
 **WARNING**: Ubuntu 12.04 (Precise Pangolin) is past its **End of Life.**
 
-**WARNING**: Ubuntu 14.04 (Trusty Tahr) is currently approaching its **Eof of Life** and has entered  
-into the Extended Security Maintenance cycle.
+**WARNING**: Ubuntu 14.04 (Trusty Tahr) is currently approaching its **Eof of Life** and has entered into the [Extended Security Maintenance][0] cycle.
 
 - Ubuntu 12.04 "Precise Pangolin" (version: 12.04.5)
 - Ubuntu 14.04 "Trusty Tahr" (version: 14.04.6)
@@ -26,3 +25,5 @@ Some of the features that the images include:
 
 Every Vagrant box includes an up-to-date version of VirtualBox Guest Additions, and a very basic system tuning (e.g.
 network stack, virtual memory, etc.), plus sensible hardening (e.g. Kernel, OpenSSH, etc.).
+
+[0]: https://ubuntu.com/esm
