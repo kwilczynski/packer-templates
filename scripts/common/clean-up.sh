@@ -320,6 +320,9 @@ if [[ ! $UBUNTU_VERSION =~ ^(12|14).04$ ]]; then
     ln -sf /dev/null /etc/systemd/network/99-default.link
 fi
 
+# Ubuntu 18.04 and newer.
+rm -f /etc/netplan/50-cloud-init.yaml
+
 rm -Rf /dev/.udev \
        /var/lib/{dhcp,dhcp3}/* \
        /var/lib/dhclient/*

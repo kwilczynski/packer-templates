@@ -19,9 +19,14 @@ readonly AMAZON_EC2=$(detect_amazon_ec2 && echo 'true')
 #  https://www.docker.com/blog/changes-dockerproject-org-apt-yum-repositories/
 cat <<EOF > /etc/apt/sources.list.d/docker.list
 $(if [[ $UBUNTU_VERSION == '12.04' ]]; then
-echo "deb [arch=amd64] https://ftp.yandex.ru/mirrors/docker ubuntu-${UBUNTU_RELEASE} main"
+    echo "deb [arch=amd64] https://ftp.yandex.ru/mirrors/docker ubuntu-${UBUNTU_RELEASE} main"
 else
-echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable"
+    if [[ $UBUNTU_VERSION =~ ^(14|16|18).04$ ]]; then
+        echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${UBUNTU_RELEASE} stable"
+    else
+        # Starting from 20.04, Docker no long provides packages from their repository.
+        echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+    fi
 fi)
 EOF
 
@@ -58,10 +63,20 @@ apt-get --assume-yes update \
 PACKAGES=(
     'pciutils'
     'procps'
-    'btrfs-tools'
     'xfsprogs'
     'git'
 )
+
+if [[ $UBUNTU_VERSION =~ ^(12|14|16|18).04$ ]]; then
+    PACKAGES+=(
+        'btrfs-tools'
+    )
+else
+    # Starting from 20.04, btrfs-progs is no longer a virtual package.
+    PACKAGES+=(
+        'btrfs-progs'
+    )
+fi
 
 DOCKER_PACKAGE='docker-ce'
 if [[ $UBUNTU_VERSION == '12.04' ]]; then
