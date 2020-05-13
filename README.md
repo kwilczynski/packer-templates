@@ -2,9 +2,9 @@ Packer templates for creating Amazon EC2 images (HVM only), Proxmox templates (K
 
 Currently supported images:
 
-**WARNING**: Ubuntu 12.04 (Precise Pangolin) is past its **End of Life.**
+**WARNING**: Ubuntu 12.04 (Precise Pangolin) is past its **End of Life** (EOL).
 
-**WARNING**: Ubuntu 14.04 (Trusty Tahr) is currently approaching its **Eof of Life** and has entered into the [Extended Security Maintenance][0] cycle.
+**WARNING**: Ubuntu 14.04 (Trusty Tahr) is currently approaching its **End of Life** (EOL) and has entered into the [Extended Security Maintenance][0] cycle.
 
 - Ubuntu 12.04 "Precise Pangolin" (version: 12.04.5)
 - Ubuntu 14.04 "Trusty Tahr" (version: 14.04.6)
