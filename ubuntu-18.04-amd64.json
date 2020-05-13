@@ -89,7 +89,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-18.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
@@ -179,7 +179,7 @@
         " apt-setup/security_host={{ user `archive_mirror`}}<wait>",
         " mirror/http/hostname={{ user `archive_mirror`}}<wait>",
         " noapic<wait>",
-        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/proxmox/ubuntu-18.04/preseed.cfg<wait>",
+        " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/vagrant/ubuntu-18.04/preseed.cfg<wait>",
         " -- <wait>",
         "<enter><wait>"
       ],
