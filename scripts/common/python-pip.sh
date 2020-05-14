@@ -150,6 +150,16 @@ if [[ $UBUNTU_VERSION == '12.04' ]]; then
     )
 fi
 
+if [[ ! $UBUNTU_VERSION =~ ^(12|14|16|18).04$ ]]; then
+    # Starting from 20.14, cloud-init package has
+    # dependencies on the new Python 3 toolchain,
+    # thus we need to keep python3-setuptools even
+    # if we don't really need to.
+    if dpkg -s cloud-init >/dev/null; then
+        PACKAGES=()
+    fi
+fi
+
 for package in "${PACKAGES[@]}"; do
     apt-get --assume-yes purge "$package"
 done
