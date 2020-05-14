@@ -533,9 +533,19 @@ if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
         apt-get --assume-yes install cloud-init
     fi
 
-    DATA_SOURCES=( 'NoCloud' 'None' )
+    # Sourced used by Proxmox.
+    DATA_SOURCES=(
+        'NoCloud'
+        'ConfigDrive'
+        'None'
+    )
+
     if [[ -n $AMAZON_EC2 ]]; then
-        DATA_SOURCES=( 'NoCloud' 'Ec2' 'None' )
+        DATA_SOURCES=(
+            'NoCloud'
+            'Ec2'
+            'None'
+        )
     fi
 
     # The cloud-init package available on Ubuntu 12.04 is too old,
