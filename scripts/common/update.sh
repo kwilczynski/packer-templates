@@ -533,6 +533,10 @@ if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
         apt-get --assume-yes install cloud-init
     fi
 
+    # Remove unwanted settings.
+    rm -f \
+        /etc/cloud/cloud.cfg.d/*_dpkg.cfg
+
     # Sourced used by Proxmox.
     DATA_SOURCES=(
         'NoCloud'
@@ -554,11 +558,11 @@ if [[ -n $AMAZON_EC2 || -n $PROXMOX ]]; then
         DATA_SOURCES=( ${DATA_SOURCES[@]/'None'} )
     fi
 
-    cat <<EOF > /etc/cloud/cloud.cfg.d/90_overrides.cfg
+    cat <<EOF > /etc/cloud/cloud.cfg.d/99_overrides.cfg
 datasource_list: [ $(join $',' "${DATA_SOURCES[@]}" | sed -e 's/,/, /g') ]
 EOF
 
-    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/99_overrides.cfg >/dev/null
 cloud_config_modules:
   - emit_upstart
   - disk_setup
@@ -589,7 +593,7 @@ mounts:
 EOF
 
 if [[ -n $PROXMOX ]]; then
-    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/99_overrides.cfg >/dev/null
 system_info:
   distro: 'ubuntu'
   default_user:
@@ -601,9 +605,10 @@ EOF
 fi
 
 # Ubuntu specific cloud-init overrides.
-    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/90_overrides.cfg >/dev/null
+    cat <<'EOF' | tee -a /etc/cloud/cloud.cfg.d/99_overrides.cfg >/dev/null
 apt_preserve_sources_list: true
 apt_update: false
+apt_upgrade: false
 EOF
 
     dpkg-reconfigure cloud-init
