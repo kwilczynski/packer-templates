@@ -43,10 +43,6 @@
     "proxmox_node": "{{env `PROXMOX_NODE`}}",
     "virtual_machine_id": "900",
     "iso_file_name": "",
-    "cpu_cores": "1",
-    "memory": "512",
-    "disk_size": "40G",
-    "disk_format": "raw",
     "storage_pool": "",
     "storage_pool_type": "",
     "network_adapter_model": "virtio",
@@ -110,13 +106,13 @@
           "modifyvm",
           "{{ .Name }}",
           "--memory",
-          "512"
+          "1024"
         ],
         [
           "modifyvm",
           "{{ .Name }}",
           "--cpus",
-          "1"
+          "2"
         ],
         [
           "modifyvm",
@@ -190,8 +186,8 @@
       "vmx_remove_ethernet_interfaces": true,
       "vmx_data": {
         "numvcpus": "1",
-        "cpuid.coresPerSocket": "1",
-        "memsize": "768"
+        "cpuid.coresPerSocket": "2",
+        "memsize": "1024"
       }
     },
     {
@@ -250,14 +246,14 @@
       "os": "l26",
       "cpu_type": "host",
       "sockets": 1,
-      "cores": "{{user `cpu_cores`}}",
-      "memory": "{{user `memory`}}",
+      "cores": 2,
+      "memory": 1024,
       "scsi_controller": "virtio-scsi-pci",
       "disks": [
         {
           "type": "scsi",
-          "disk_size": "{{user `disk_size`}}",
-          "format": "{{user `disk_format`}}",
+          "disk_size": "40G",
+          "format": "raw",
           "storage_pool": "{{user `storage_pool`}}",
           "storage_pool_type": "{{user `storage_pool_type`}}"
         }
