@@ -20,7 +20,8 @@ Vagrant.configure('2') do |config|
       '--rtcuseutc', 'on',
       '--natdnsproxy1', 'on',
       '--natdnshostresolver1', 'on',
-      '--nictype1', 'virtio'
+      '--nictype1', 'virtio',
+      '--uartmode1', 'file', '/dev/null'
     ]
     vm.customize ['guestproperty', 'set', :id,
       '/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold', 5000
